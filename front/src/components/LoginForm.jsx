@@ -4,7 +4,7 @@ import { Boxicons } from 'boxicons';
 function LoginForm() {
   return (
     <div className="form-box login">
-      <form>
+      <form >
         <h1>Login</h1>
         <div className="input-box">
           <input type="text" placeholder="Username" required />
