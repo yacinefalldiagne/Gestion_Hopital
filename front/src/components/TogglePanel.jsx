@@ -1,21 +1,30 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 function TogglePanel({ onRegisterClick, onLoginClick }) {
   return (
     <div className="toggle-box">
       <div className="toggle-panel toggle-left">
-        <h1>Hello, Welcome!</h1>
-        <p>Don't have an Account?</p>
+        <h1>Bonjour, Bienvenue !</h1>
+        <p>Vous n'avez pas de compte ?</p>
         <button className="btn register-btn" onClick={onRegisterClick}>
-          Register
+          S'inscrire
         </button>
+        {/* Remplacement du texte par une icône de flèche */}
+        <Link to="/landing" className="back-to-home">
+          <i className="bx bx-arrow-back"></i>
+        </Link>
       </div>
       <div className="toggle-panel toggle-right">
-        <h1>Welcome Back!</h1>
-        <p>Already have an Account?</p>
+        <h1>Content de vous revoir </h1>
+        <p>Vous avez déjà un compte ?</p>
         <button className="btn login-btn" onClick={onLoginClick}>
-          Login
+          Se connecter
         </button>
+        {/* Remplacement du texte par une icône de flèche */}
+        <Link to="/landing" className="back-to-home">
+          <i className="bx bx-arrow-back"></i>
+        </Link>
       </div>
     </div>
   );

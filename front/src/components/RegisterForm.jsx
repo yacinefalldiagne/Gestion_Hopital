@@ -1,88 +1,101 @@
-import React from 'react';
-import { Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 function RegisterForm() {
-
+  const [prenom, setPrenom] = useState('');
+  const [nom, setNom] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState('patient');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
-
-  const [data, setData] = useState({
-    firstname: '',
-    lastname: '',
-    email: '',
-    password: '',
-    role: 'patient'
-  });
 
   const registerUser = async (e) => {
     e.preventDefault();
-    const { firstname, lastname, email, password, role } = data;
 
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`,
-        { firstname, lastname, email, password, role },
-        { withCredentials: true }
-      );
+      const response = await axios.post('http://localhost:5000/api/auth/register', {
+        prenom,
+        nom,
+        email,
+        password,
+        role,
+      });
 
-      if (response.data.error) {
-        console.error(response.data.error);
-      } else {
-        setData({ firstname: '', lastname: '', email: '', password: '', role: 'patient' });
+      const { token, role: userRole } = response.data;
 
-        // Redirection en fonction du rôle
-        if (response.data.user?.role === "secretaire") {
-          navigate('/secretaire');
-        } else {
-          navigate('/patient'); // Par défaut, rediriger les autres utilisateurs ici
-        }
+      // Stocker le token dans localStorage
+      localStorage.setItem('token', token);
+
+      // Rediriger en fonction du rôle
+      if (userRole === 'patient') {
+        navigate('/patient');
+      } else if (userRole === 'medecin') {
+        navigate('/medecin');
+      } else if (userRole === 'secretaire') {
+        navigate('/secretaire');
       }
-    } catch (error) {
-      console.error("Erreur lors de l'inscription :", error);
-      // toast.error("Une erreur s'est produite. Veuillez réessayer.");
+    } catch (err) {
+      setError(err.response?.data?.message || 'Erreur lors de l’inscription');
     }
   };
 
   return (
     <div className="form-box register">
       <form onSubmit={registerUser}>
-        <h1>Registration</h1>
+        <h1>Inscription</h1>
+        {error && <p className="error">{error}</p>}
         <div className="input-box">
-          <input type="text" placeholder="Prénom" required
-            value={data.firstname}
-            onChange={(e) => setData({ ...data, firstname: e.target.value })}
+          <input
+            type="text"
+            placeholder="Prénom"
+            value={prenom}
+            onChange={(e) => setPrenom(e.target.value)}
+            required
           />
-          <i className='bx bxs-user'></i>
-        </div>
-        <div className="input-box">
-          <input type="text" placeholder="Nom" required
-            value={data.lastname}
-            onChange={(e) => setData({ ...data, lastname: e.target.value })}
-          />
-          <i className='bx bxs-user'></i>
+          <i className="bx bxs-user"></i>
         </div>
         <div className="input-box">
-          <input type="email" placeholder="Email" required
-            value={data.email}
-            onChange={(e) => setData({ ...data, email: e.target.value })}
+          <input
+            type="text"
+            placeholder="Nom"
+            value={nom}
+            onChange={(e) => setNom(e.target.value)}
+            required
           />
-          <i className='bx bxs-envelope'></i>
+          <i className="bx bxs-user"></i>
         </div>
         <div className="input-box">
-          <input type="password" placeholder="Mot de passe" required
-            value={data.password}
-            onChange={(e) => setData({ ...data, password: e.target.value })}
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
           />
-          <i className='bx bxs-lock-alt'></i>
+          <i className="bx bxs-envelope"></i>
         </div>
-        <button type="submit" className="btn">S'inscrire</button>
-        <p>or Register with Social Platforms</p>
-        <div className="social-icons">
-          <a href="#"><i className='bx bxl-google'></i></a>
-          <a href="#"><i className='bx bxl-facebook'></i></a>
-          <a href="#"><i className='bx bxl-github'></i></a>
-          <a href="#"><i className='bx bxl-linkedin'></i></a>
+        <div className="input-box">
+          <input
+            type="password"
+            placeholder="Mot de passe"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+          <i className="bx bxs-lock-alt"></i>
         </div>
+        <div className="input-box">
+          <select value={role} onChange={(e) => setRole(e.target.value)} required>
+            <option value="patient">Patient</option>
+            <option value="medecin">Médecin</option>
+            <option value="secretaire">Secrétaire</option>
+          </select>
+        </div>
+        <button type="submit" className="btn">
+          S'inscrire
+        </button>
       </form>
     </div>
   );
