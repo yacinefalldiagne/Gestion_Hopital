@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import styles from './Public.module.css';
 
 function LoginForm() {
   const [email, setEmail] = useState('');
@@ -36,11 +37,11 @@ function LoginForm() {
   };
 
   return (
-    <div className="form-box login">
+    <div className={`${styles.formBox} ${styles.login}`}>
       <form onSubmit={loginUser}>
         <h1>Connexion</h1>
-        {error && <p className="error">{error}</p>}
-        <div className="input-box">
+        {error && <p className={styles.error}>{error}</p>}
+        <div className={styles.inputBox}>
           <input
             type="email"
             placeholder="Email"
@@ -50,7 +51,7 @@ function LoginForm() {
           />
           <i className="bx bxs-envelope"></i>
         </div>
-        <div className="input-box">
+        <div className={styles.inputBox}>
           <input
             type="password"
             placeholder="Mot de passe"
@@ -60,7 +61,7 @@ function LoginForm() {
           />
           <i className="bx bxs-lock-alt"></i>
         </div>
-        <button type="submit" className="btn">
+        <button type="submit" className={styles.btn}>
           Se connecter
         </button>
       </form>

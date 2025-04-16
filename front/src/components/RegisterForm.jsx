@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import styles from './Public.module.css';
 
 function RegisterForm() {
   const [prenom, setPrenom] = useState('');
@@ -42,11 +43,11 @@ function RegisterForm() {
   };
 
   return (
-    <div className="form-box register">
+    <div className={`${styles.formBox} ${styles.register}`}>
       <form onSubmit={registerUser}>
         <h1>Inscription</h1>
-        {error && <p className="error">{error}</p>}
-        <div className="input-box">
+        {error && <p className={styles.error}>{error}</p>}
+        <div className={styles.inputBox}>
           <input
             type="text"
             placeholder="Prénom"
@@ -56,7 +57,7 @@ function RegisterForm() {
           />
           <i className="bx bxs-user"></i>
         </div>
-        <div className="input-box">
+        <div className={styles.inputBox}>
           <input
             type="text"
             placeholder="Nom"
@@ -66,7 +67,7 @@ function RegisterForm() {
           />
           <i className="bx bxs-user"></i>
         </div>
-        <div className="input-box">
+        <div className={styles.inputBox}>
           <input
             type="email"
             placeholder="Email"
@@ -76,7 +77,7 @@ function RegisterForm() {
           />
           <i className="bx bxs-envelope"></i>
         </div>
-        <div className="input-box">
+        <div className={styles.inputBox}>
           <input
             type="password"
             placeholder="Mot de passe"
@@ -86,14 +87,14 @@ function RegisterForm() {
           />
           <i className="bx bxs-lock-alt"></i>
         </div>
-        <div className="input-box">
+        <div className={styles.inputBox}>
           <select value={role} onChange={(e) => setRole(e.target.value)} required>
             <option value="patient">Patient</option>
             <option value="medecin">Médecin</option>
             <option value="secretaire">Secrétaire</option>
           </select>
         </div>
-        <button type="submit" className="btn">
+        <button type="submit" className={styles.btn}>
           S'inscrire
         </button>
       </form>
