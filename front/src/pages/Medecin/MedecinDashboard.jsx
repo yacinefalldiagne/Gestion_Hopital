@@ -2,10 +2,10 @@ import React from "react";
 import { FaCalendarAlt, FaUser, FaFileMedical, FaChartLine, FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import { Line } from "react-chartjs-2";
 import { Link } from "react-router-dom";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from "chart.js";
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler } from "chart.js";
 
-// Enregistrer les composants nécessaires pour Chart.js
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+// Enregistrer les composants nécessaires pour Chart.js, y compris Filler
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler);
 
 function MedecinDashboard() {
   // Données pour la courbe d'évaluations (simulées)

@@ -6,6 +6,7 @@ import styles from './components/Public.module.css';
 import LoginForm from './components/LoginForm';
 import RegisterForm from './components/RegisterForm';
 import TogglePanel from './components/TogglePanel';
+
 import Patient from './pages/Patient/PatientDashboard';
 import MedecinDashboard from './pages/Medecin/MedecinDashboard';
 import Secretaire from './pages/Secretaire/SecretaireDashboard';
@@ -15,6 +16,7 @@ import AppointmentSecretaire from './pages/Secretaire/Appointment';
 import PatientDetails from './pages/Secretaire/PatientDetails';
 import AddPatient from './pages/Secretaire/AddPatient';
 import Dossier from './pages/Secretaire/Dossier';
+import NonDicomData from "./pages/Medecin/NonDicomData";
 
 function App() {
   const location = useLocation();
@@ -77,33 +79,32 @@ function App() {
 
         {/* Routes privées avec Layout */}
         <Route element={<Layout userRole={userRole} />}>
-          {/* Route patient */}
+          {/* Patient */}
           <Route path="/patient" element={
             <PrivateRoute allowedRoles={['patient']}>
               <Patient />
             </PrivateRoute>
           } />
 
-          {/* Route médecin */}
+          {/* Médecin avec sous-routes */}
           <Route path="/medecin" element={
             <PrivateRoute allowedRoles={['medecin']}>
-              <MedecinDashboard />
+              <Outlet />
             </PrivateRoute>
-          } />
+          }>
+            <Route index element={<MedecinDashboard />} />
+            <Route path="non-dicom" element={<NonDicomData />} />
+          </Route>
 
-          {/* Route secrétaire avec sous-routes */}
+          {/* Secrétaire avec sous-routes */}
           <Route path="/secretaire" element={
             <PrivateRoute allowedRoles={['secretaire']}>
               <Outlet />
             </PrivateRoute>
           }>
-            {/* Page d'accueil secrétaire */}
             <Route index element={<Secretaire />} />
-            {/* Sous-route pour les patients */}
             <Route path="patients" element={<Patients />} />
-            {/* Sous-route pour les détails d'un patient */}
             <Route path="patient/:id" element={<PatientDetails />} />
-            {/* Sous-route pour les rendez-vous */}
             <Route path="schedule" element={<AppointmentSecretaire />} />
             <Route path="patient/add" element={<AddPatient />} />
             <Route path="dossier/:id" element={<Dossier />} />
