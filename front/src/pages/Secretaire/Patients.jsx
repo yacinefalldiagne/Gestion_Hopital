@@ -1,18 +1,49 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { FaPlus, FaEye, FaSearch, FaSort } from "react-icons/fa";
+import axios from "axios";
 
 function Patients() {
-    // Données simulées pour les patients
-    const [patients, setPatients] = useState([
-        { id: 1, name: "Jean Dupont", age: 45, lastAppointment: "15 Avr 2025", phone: "+33 6 12 34 56 78", email: "jean.dupont@email.com" },
-        { id: 2, name: "Marie Claire", age: 32, lastAppointment: "10 Avr 2025", phone: "+33 6 98 76 54 32", email: "marie.claire@email.com" },
-        { id: 3, name: "Paul Martin", age: 60, lastAppointment: "5 Avr 2025", phone: "+33 6 45 67 89 01", email: "paul.martin@email.com" },
-        { id: 4, name: "Sophie Durand", age: 28, lastAppointment: "1 Avr 2025", phone: "+33 6 23 45 67 89", email: "sophie.durand@email.com" },
-    ]);
-
+    const [patients, setPatients] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [sortBy, setSortBy] = useState("name");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        const fetchPatients = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/patients', {
+                    withCredentials: true, // Send authToken cookie for authentication
+                });
+                // Transform the response data to match the component's expected structure
+                const transformedPatients = response.data.map(patient => ({
+                    id: patient.id, // userId from the response
+                    name: patient.name, // Already formatted as "prenom nom"
+                    age: calculateAge(patient.dateNaissance),
+                    lastAppointment: patient.lastAppointment || 'Aucun rendez-vous',
+                    phone: patient.phone, // numeroTelephone
+                    email: patient.email, // From userId.email
+                }));
+                setPatients(transformedPatients);
+            } catch (err) {
+                setError(err.response?.data?.message || 'Erreur lors de la récupération des patients');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPatients();
+    }, []);
+
+    const calculateAge = (birthDate) => {
+        const today = new Date();
+        const birth = new Date(birthDate);
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
+        return age;
+    };
 
     // Filtrer les patients en fonction de la recherche
     const filteredPatients = patients.filter((patient) =>
@@ -28,6 +59,9 @@ function Patients() {
         }
         return 0;
     });
+
+    if (loading) return <div className="text-center text-gray-600">Chargement...</div>;
+    if (error) return <div className="text-center text-red-600">{error}</div>;
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
@@ -92,7 +126,7 @@ function Patients() {
                                     />
                                     <div>
                                         <h3 className="text-lg font-semibold text-gray-800">{patient.name}</h3>
-                                        <p className="text-sm text-gray-600">{patient.age} ans</p>
+                                        <p className="text-sm text-gray-600">{patient.age === 'Inconnu' ? 'Inconnu' : `${patient.age} ans`}</p>
                                     </div>
                                 </div>
                                 <div className="space-y-2">

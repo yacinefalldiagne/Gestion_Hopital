@@ -14,6 +14,7 @@ import Patients from './pages/Secretaire/Patients';
 import AppointmentSecretaire from './pages/Secretaire/Appointment';
 import PatientDetails from './pages/Secretaire/PatientDetails';
 import AddPatient from './pages/Secretaire/AddPatient';
+import Dossier from './pages/Secretaire/Dossier';
 
 function App() {
   const location = useLocation();
@@ -105,6 +106,8 @@ function App() {
             {/* Sous-route pour les rendez-vous */}
             <Route path="schedule" element={<AppointmentSecretaire />} />
             <Route path="patient/add" element={<AddPatient />} />
+            <Route path="dossier/:id" element={<Dossier />} />
+            <Route path="dossier" element={<Dossier />} />
             {/* Autres sous-routes pour la secrétaire */}
 
           </Route>

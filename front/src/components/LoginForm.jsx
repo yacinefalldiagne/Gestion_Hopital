@@ -13,15 +13,15 @@ function LoginForm() {
     e.preventDefault();
 
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
-        email,
-        password,
-      });
+      const response = await axios.post(
+        'http://localhost:5000/api/auth/login',
+        { email, password },
+        { withCredentials: true } // Ensure cookies are set and sent
+      );
 
-      const { token, role } = response.data;
+      const { role } = response.data;
 
-      // Stocker le token dans localStorage
-      localStorage.setItem('token', token);
+      // No need to store token in localStorage; backend sets authToken cookie
 
       // Rediriger en fonction du rôle
       if (role === 'patient') {
