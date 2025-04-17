@@ -6,6 +6,11 @@ const User = require('../models/user');
 
 // Route pour l'inscription
 router.post('/register', async (req, res) => {
+  if (!req.body) {
+    console.log('Erreur: Aucun corps de requête fourni pour /register');
+    return res.status(400).json({ message: 'Aucun corps de requête fourni' });
+  }
+
   const { prenom, nom, email, password, role } = req.body;
 
   // Validation des champs requis
@@ -56,10 +61,20 @@ router.post('/register', async (req, res) => {
 
 // Route pour la connexion
 router.post('/login', async (req, res) => {
+  if (!req.body) {
+    console.log('Erreur: Aucun corps de requête fourni pour /login');
+    return res.status(400).json({ message: 'Aucun corps de requête fourni' });
+  }
+
   const { email, password } = req.body;
 
   try {
     console.log('Requête de connexion reçue:', { email, password });
+
+    if (!email || !password) {
+      console.log('Email ou mot de passe manquant');
+      return res.status(400).json({ message: 'Email et mot de passe requis' });
+    }
 
     console.log('Recherche de l’utilisateur dans la base de données');
     const user = await User.findOne({ email });
@@ -91,7 +106,7 @@ router.post('/login', async (req, res) => {
     };
 
     console.log('Génération du token JWT');
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
     console.log('Token généré avec succès');
 
     res.json({ token, role: user.role });
