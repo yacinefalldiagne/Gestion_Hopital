@@ -16,7 +16,10 @@ import AppointmentSecretaire from './pages/Secretaire/Appointment';
 import PatientDetails from './pages/Secretaire/PatientDetails';
 import AddPatient from './pages/Secretaire/AddPatient';
 import Dossier from './pages/Secretaire/Dossier';
-import NonDicomData from "./pages/Medecin/NonDicomData";
+import AddDossier from './pages/Secretaire/AddDossier';
+import PatientsMedecin from "./pages/Medecin/Patients";
+import EditPatient from "./pages/Medecin/EditPatient";
+import Dicom from "./pages/Medecin/ImageDicom";
 
 function App() {
   const location = useLocation();
@@ -93,7 +96,10 @@ function App() {
             </PrivateRoute>
           }>
             <Route index element={<MedecinDashboard />} />
-            <Route path="non-dicom" element={<NonDicomData />} />
+            <Route path="patients" element={<PatientsMedecin />} />
+            <Route path="dossier-medical/:id" element={<EditPatient />} />
+            <Route path="dicom" element={<Dicom />} />
+
           </Route>
 
           {/* Secrétaire avec sous-routes */}
@@ -109,6 +115,7 @@ function App() {
             <Route path="patient/add" element={<AddPatient />} />
             <Route path="dossier/:id" element={<Dossier />} />
             <Route path="dossier" element={<Dossier />} />
+            <Route path="patients/:id/dossier/add" element={<AddDossier />} />
             {/* Autres sous-routes pour la secrétaire */}
 
           </Route>

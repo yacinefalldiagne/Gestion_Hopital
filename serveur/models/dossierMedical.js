@@ -1,5 +1,28 @@
 const mongoose = require('mongoose');
 
+const consultationSchema = new mongoose.Schema({
+    date: { type: Date },
+    doctor: { type: String },
+    diagnosis: { type: String },
+    treatment: { type: String },
+    notes: { type: String },
+});
+
+const prescriptionSchema = new mongoose.Schema({
+    medication: { type: String },
+    dosage: { type: String },
+    frequency: { type: String },
+    duration: { type: String },
+    prescribedDate: { type: Date },
+});
+
+const labResultSchema = new mongoose.Schema({
+    testName: { type: String },
+    result: { type: String },
+    date: { type: Date },
+    notes: { type: String },
+});
+
 const dossierMedicalSchema = new mongoose.Schema({
     numero: {
         type: String,
@@ -12,17 +35,32 @@ const dossierMedicalSchema = new mongoose.Schema({
     },
     patient: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'Patient', // Reference to the Patient model
+        ref: 'Patient',
         required: true,
     },
     noteMedecin: {
         type: String,
         default: '',
     },
-    documentsAssocies: {
-        type: [String], // Array of file paths or URLs (e.g., PDF, image links)
+    consultations: {
+        type: [consultationSchema],
         default: [],
     },
+    prescriptions: {
+        type: [prescriptionSchema],
+        default: [],
+    },
+    labResults: {
+        type: [labResultSchema],
+        default: [],
+    },
+    documentsAssocies: {
+        type: [String],
+        default: [],
+    },
+    studyIds: [{
+        type: String // IDs des instances DICOM dans Orthanc
+    }],
 });
 
 module.exports = mongoose.model('DossierMedical', dossierMedicalSchema);

@@ -11,8 +11,8 @@ export const SIDEBAR_LINKS = {
     ],
     medecin: [
         { id: 1, name: "Tableau de bord", path: "/medecin", icon: LuBox },
-        { id: 2, name: "Donées non DICOM", path: "/medecin/non-dicom", icon: LuFileText },
-        { id: 3, name: "Images DICOM", path: "/medecin/dicom", icon: LuImage },
+        { id: 1, name: "Patients", path: "/medecin/patients", icon: LuUser },
+        { id: 3, name: "Imagerie médicale", path: "/medecin/dicom", icon: LuImage },
         { id: 4, name: "Rapport", path: "/medecin/report", icon: LuFileText },
         { id: 5, name: "Historique des consultations", path: "/medecin/history", icon: LuHistory },
         { id: 6, name: "Compte-rendu", path: "/medecin/download-report", icon: LuDownload },

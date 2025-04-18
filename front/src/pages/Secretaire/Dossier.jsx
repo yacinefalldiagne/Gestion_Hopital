@@ -153,8 +153,6 @@ function Dossier() {
                             <th className="py-3 px-4 text-left text-gray-600 font-semibold">Numéro</th>
                             <th className="py-3 px-4 text-left text-gray-600 font-semibold">Patient</th>
                             <th className="py-3 px-4 text-left text-gray-600 font-semibold">Date de création</th>
-                            <th className="py-3 px-4 text-left text-gray-600 font-semibold">Note du médecin</th>
-                            <th className="py-3 px-4 text-left text-gray-600 font-semibold">Documents</th>
                             <th className="py-3 px-4 text-left text-gray-600 font-semibold">Actions</th>
                         </tr>
                     </thead>
@@ -167,26 +165,8 @@ function Dossier() {
                                     <td className="py-3 px-4 text-gray-600">
                                         {new Date(dossier.dateCreation).toLocaleDateString("fr-FR")}
                                     </td>
-                                    <td className="py-3 px-4 text-gray-600">
-                                        {dossier.noteMedecin || "Aucune note"}
-                                    </td>
-                                    <td className="py-3 px-4 text-gray-600">
-                                        {dossier.documentsAssocies.length > 0 ? (
-                                            dossier.documentsAssocies.map((doc, index) => (
-                                                <a
-                                                    key={index}
-                                                    href={doc}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    className="text-blue-600 hover:underline flex items-center"
-                                                >
-                                                    <FaFileAlt className="mr-1" /> Document {index + 1}
-                                                </a>
-                                            ))
-                                        ) : (
-                                            "Aucun document"
-                                        )}
-                                    </td>
+
+
                                     <td className="py-3 px-4 flex space-x-2">
                                         <button
                                             onClick={() => openModal(dossier)}
@@ -194,12 +174,7 @@ function Dossier() {
                                         >
                                             <FaEdit />
                                         </button>
-                                        <button
-                                            onClick={() => handleDelete(dossier._id)}
-                                            className="text-red-600 hover:text-red-800"
-                                        >
-                                            <FaTrash />
-                                        </button>
+
                                     </td>
                                 </tr>
                             ))

@@ -35,7 +35,7 @@ const getPatients = async (req, res) => {
         }
 
         // Vérification du rôle de l'utilisateur
-        if (user.role !== 'secretaire') {
+        if (user.role !== 'secretaire' && user.role !== 'medecin') {
             return res.status(403).json({ message: 'Accès interdit. Rôle insuffisant.' });
         }
 
@@ -99,15 +99,19 @@ const calculateAge = (birthDate) => {
 const getPatientDetails = async (req, res) => {
     try {
         const userId = req.query.userId || req.user.user.id;
-        const isSecretaire = req.user.user.role === 'secretaire';
+        const isAccept = req.user.user.role === 'secretaire' || req.user.user.role === 'medecin';
 
-        if (!isSecretaire && req.query.userId) {
-            return res.status(403).json({ message: 'Accès interdit. Seuls les secrétaires peuvent voir les détails d\'autres patients.' });
+        if (!isAccept && req.query.userId) {
+            return res.status(403).json({ message: 'Accès interdit. Seuls les secrétaires/medecins peuvent voir les détails d\'autres patients.' });
         }
 
+        // Trouver le patient avec l'userId
         const patient = await Patient.findOne({ userId })
             .populate('userId', 'prenom nom email')
-            .populate('dossierMedical')
+            .populate({
+                path: 'dossierMedical',
+                select: 'numero noteMedecin consultations prescriptions labResults documentsAssocies',
+            })
             .populate({
                 path: 'rendezvous',
                 select: 'dateRendezVous titre color',
@@ -117,18 +121,30 @@ const getPatientDetails = async (req, res) => {
             return res.status(404).json({ message: 'Aucun patient trouvé pour cet utilisateur' });
         }
 
+        // Construire les données du patient
         const patientData = {
             id: patient.userId._id.toString(),
-            name: `${patient.userId.prenom} ${patient.userId.nom}`,
-            joinedSince: patient.createdAt.toLocaleDateString('fr-FR', { month: 'long', day: 'numeric', year: 'numeric' }), // Changed to fr-FR for French
-            gender: patient.sexe,
-            birthday: patient.dateNaissance.toLocaleDateString('fr-FR', { month: 'long', day: 'numeric', year: 'numeric' }), // Changed to fr-FR
-            phone: patient.numeroTelephone,
+            prenom: patient.userId.prenom,
+            nom: patient.userId.nom,
             email: patient.userId.email,
+            dateNaissance: patient.dateNaissance,
+            phone: patient.numeroTelephone,
+            groupeSanguin: patient.groupeSanguin || null,
+            allergies: patient.allergies || [],
+            antecedent: patient.antecedent || '',
+            dossiers: patient.dossierMedical.map(dossier => ({
+                _id: dossier._id,
+                numero: dossier.numero,
+                noteMedecin: dossier.noteMedecin || '',
+                consultations: dossier.consultations || [],
+                prescriptions: dossier.prescriptions || [],
+                labResults: dossier.labResults || [],
+                documentsAssocies: dossier.documentsAssocies || [],
+            })),
             appointments: patient.rendezvous.map(r => ({
-                date: r.dateRendezVous.toLocaleDateString('fr-FR', { month: 'long', day: 'numeric', year: 'numeric' }), // Changed to fr-FR
+                date: r.dateRendezVous.toLocaleDateString('fr-FR', { month: 'long', day: 'numeric', year: 'numeric' }),
                 title: r.titre,
-                doctor: 'Dr. TBD', // Updated placeholder
+                doctor: 'Dr. TBD',
                 color: r.color,
             })),
             assurance: {
@@ -143,6 +159,13 @@ const getPatientDetails = async (req, res) => {
                 url: img.url,
                 uploadDate: img.uploadDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
             })),
+            documents: patient.documents.map(doc => ({
+                name: doc.name,
+                type: doc.type,
+                size: doc.size,
+                url: doc.url,
+                uploadDate: doc.uploadDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+            })),
         };
 
         res.json(patientData);
@@ -151,7 +174,6 @@ const getPatientDetails = async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 };
-
 const createPatient = async (req, res) => {
     try {
         console.log('Received patient data:', req.body);
