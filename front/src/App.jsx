@@ -15,7 +15,10 @@ import Patients from './pages/Secretaire/Patients';
 import AppointmentSecretaire from './pages/Secretaire/Appointment';
 import PatientDetails from './pages/Secretaire/PatientDetails';
 import AddPatient from './pages/Secretaire/AddPatient';
-import NonDicomData from "./pages/Medecin/NonDicomData";
+import NonDicomData from './pages/Medecin/NonDicomData';
+import DicomData from './pages/Medecin/DicomData';
+import ReportPage from './pages/Medecin/ReportPage'; // Correction du chemin
+import PatientsList from './pages/Medecin/PatientsList'; // Assurez-vous que ce fichier existe maintenant
 
 function App() {
   const location = useLocation();
@@ -92,7 +95,10 @@ function App() {
             </PrivateRoute>
           }>
             <Route index element={<MedecinDashboard />} />
+            <Route path="patients" element={<PatientsList />} />
             <Route path="non-dicom" element={<NonDicomData />} />
+            <Route path="dicom" element={<DicomData />} />
+            <Route path="patient/:patientId/reports" element={<ReportPage />} />
           </Route>
 
           {/* Secrétaire avec sous-routes */}
