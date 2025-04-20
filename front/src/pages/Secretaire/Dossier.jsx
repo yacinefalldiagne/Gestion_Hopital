@@ -132,9 +132,16 @@ function Dossier() {
         }
     };
 
-    if (loading) return <div>Chargement...</div>;
-    if (error) return <div>{error}</div>;
-
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600"></div>
+            </div>
+        );
+    }
+    if (error) {
+        return <div className="text-center text-red-600 text-lg">{error}</div>;
+    }
     return (
         <div className="min-h-screen bg-gray-100 p-6">
             <h1 className="text-3xl font-bold text-gray-800 mb-6">Liste des dossiers médicaux</h1>

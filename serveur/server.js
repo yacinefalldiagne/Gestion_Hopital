@@ -22,7 +22,9 @@ app.use(cookieParser());
 // Routes
 app.use('/api/auth', require('./routes/authRoute'));
 app.use('/api/patients', require('./routes/patientRoute'));
+app.use('/api/medecins', require('./routes/medecinRoutes'));
 app.use('/api/dossiers', require('./routes/dossierRoute'));
+app.use('/api/rendezvous', require('./routes/rendezvousRoute'));
 // app.use('/api/files', require('./routes/fileRoute')); // Corrected path for file routes
 
 

@@ -1,5 +1,12 @@
 const mongoose = require('mongoose');
 
+const dicomInstanceSchema = new mongoose.Schema({
+    instanceId: { type: String, required: true },
+    studyInstanceUID: { type: String },
+    examDate: { type: Date },
+    patientName: { type: String },
+});
+
 const consultationSchema = new mongoose.Schema({
     date: { type: Date },
     doctor: { type: String },
@@ -58,9 +65,10 @@ const dossierMedicalSchema = new mongoose.Schema({
         type: [String],
         default: [],
     },
-    studyIds: [{
-        type: String // IDs des instances DICOM dans Orthanc
-    }],
+    dicomInstances: {
+        type: [dicomInstanceSchema], // Updated to use a sub-schema
+        default: [],
+    },
 });
 
 module.exports = mongoose.model('DossierMedical', dossierMedicalSchema);

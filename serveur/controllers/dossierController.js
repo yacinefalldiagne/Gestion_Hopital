@@ -55,6 +55,24 @@ const handleMulterError = (err, req, res, next) => {
     next();
 };
 
+const dicomParser = require('dicom-parser');
+
+const validateDicomFile = (filePath) => {
+    try {
+        const fileBuffer = fs.readFileSync(filePath);
+        const dataSet = dicomParser.parseDicom(fileBuffer);
+        console.log(`DICOM file ${filePath} parsed successfully. Tags:`, {
+            PatientName: dataSet.string('x00100010'),
+            StudyInstanceUID: dataSet.string('x0020000d'),
+            SeriesInstanceUID: dataSet.string('x0020000e'),
+        });
+        return true;
+    } catch (err) {
+        console.warn(`Fichier DICOM invalide: ${filePath}`, err.message);
+        return false;
+    }
+};
+
 
 // Authentication middleware
 const authMiddleware = (req, res, next) => {
@@ -333,24 +351,26 @@ const getDicomInstances = async (req, res) => {
             return res.status(404).json({ message: "Aucun dossier trouvé pour ce patient" });
         }
 
-        const dicomInstanceIds = dossiers.flatMap(dossier => dossier.dicomInstances).filter(id => id != null && id !== '');
+        const dicomInstances = dossiers.flatMap(dossier => dossier.dicomInstances);
 
-        // Récupérer les métadonnées des instances depuis Orthanc
+        // Retrieve metadata for each instance from Orthanc
         const instances = [];
-        for (const instanceId of dicomInstanceIds) {
+        for (const instance of dicomInstances) {
             try {
-                const response = await axios.get(`http://localhost:8042/instances/${instanceId}`);
-                const studyInstanceUID = response.data.MainDicomTags.StudyInstanceUID;
+                const response = await axios.get(`http://localhost:8042/instances/${instance.instanceId}`);
                 instances.push({
-                    id: instanceId,
+                    id: instance.instanceId,
+                    studyInstanceUID: instance.studyInstanceUID,
+                    examDate: instance.examDate,
+                    patientName: instance.patientName,
                     mainDicomTags: response.data.MainDicomTags,
-                    previewUrl: `/instances/${instanceId}/preview`,
-                    stoneViewerUrl: studyInstanceUID
-                        ? `http://localhost:8042/stone-webviewer/index.html?study=${studyInstanceUID}`
-                        : null
+                    previewUrl: `/instances/${instance.instanceId}/preview`,
+                    stoneViewerUrl: instance.studyInstanceUID
+                        ? `http://localhost:8042/stone-webviewer/index.html?study=${instance.studyInstanceUID}`
+                        : null,
                 });
             } catch (err) {
-                console.warn(`Impossible de récupérer l'instance ${instanceId}:`, err.message);
+                console.warn(`Impossible de récupérer l'instance ${instance.instanceId}:`, err.message);
             }
         }
 
@@ -379,13 +399,17 @@ const uploadDicom = async (req, res) => {
             return res.status(404).json({ message: "Dossier non trouvé" });
         }
 
-        const instanceIds = [];
-        const failedFiles = [];
+        const instanceData = [];
+        const uploadedInstanceIds = [];
 
         for (const file of files) {
-            if (!/\.dcm$/i.test(file.originalname)) {
+            if (!/\.DCM$/i.test(file.originalname)) {
                 console.warn(`Fichier ignoré (extension non-DICOM): ${file.originalname}`);
-                failedFiles.push({ filename: file.originalname, reason: "Extension non-DICOM" });
+                continue;
+            }
+
+            if (!validateDicomFile(file.path)) {
+                console.warn(`Fichier DICOM invalide: ${file.path}`);
                 continue;
             }
 
@@ -393,33 +417,124 @@ const uploadDicom = async (req, res) => {
             const fileBuffer = fs.readFileSync(file.path);
             formData.append('file', fileBuffer, {
                 filename: file.originalname,
-                contentType: file.mimetype
+                contentType: file.mimetype,
             });
 
+            let instanceId;
+            let sopInstanceUID;
+            let studyInstanceUIDFromFile;
+            let patientNameFromFile;
+            let examDateFromFile;
             try {
-                const response = await axios.post('http://localhost:8042/instances', formData, {
-                    headers: {
-                        ...formData.getHeaders()
-                    }
-                });
+                // Extract metadata from the DICOM file
+                const dicomData = dicomParser.parseDicom(fileBuffer);
+                sopInstanceUID = dicomData.string('x00080018');
+                studyInstanceUIDFromFile = dicomData.string('x0020000d');
+                patientNameFromFile = dicomData.string('x00100010');
+                const studyDate = dicomData.string('x00080020'); // StudyDate
+                examDateFromFile = studyDate
+                    ? new Date(
+                        studyDate.substring(0, 4),
+                        studyDate.substring(4, 6) - 1,
+                        studyDate.substring(6, 8)
+                    )
+                    : null;
 
-                const instanceId = response.data.ID;
-                if (!instanceId || typeof instanceId !== 'string' || instanceId.trim() === '') {
-                    console.error(`ID d'instance invalide pour le fichier ${file.originalname}:`, response.data);
-                    failedFiles.push({ filename: file.originalname, reason: `ID d'instance invalide: ${JSON.stringify(response.data)}` });
+                if (!sopInstanceUID) {
+                    console.error(`SOPInstanceUID manquant pour le fichier ${file.originalname}`);
                     continue;
                 }
-                instanceIds.push(instanceId);
+
+                const uploadResponse = await axios.post('http://localhost:8042/instances', formData, {
+                    headers: { ...formData.getHeaders() },
+                    responseType: 'text',
+                });
+
+                console.log(`Statut de la réponse d'Orthanc pour ${file.originalname}: ${uploadResponse.status}`);
+                console.log(`Réponse brute d'Orthanc pour ${file.originalname}: ${uploadResponse.data}`);
+
+                if (uploadResponse.status !== 200) {
+                    console.error(`Échec de l'upload sur Orthanc pour ${file.originalname}: Statut ${uploadResponse.status}`);
+                    continue;
+                }
+
+                // Try to parse the response
+                let responseData;
+                try {
+                    responseData = JSON.parse(uploadResponse.data);
+                    console.log(`Réponse d'Orthanc (JSON) pour ${file.originalname}:`, JSON.stringify(responseData, null, 2));
+                } catch (parseErr) {
+                    console.error(`Échec de l'analyse de la réponse d'Orthanc pour ${file.originalname}:`, parseErr.message);
+                    console.error(`Réponse brute d'Orthanc: ${uploadResponse.data}`);
+                }
+
+                // Try to get instanceId from the response
+                if (responseData) {
+                    instanceId = responseData.ID || responseData.InstanceID || responseData.id;
+                }
+
+                // If instanceId is not in the response, query Orthanc using SOPInstanceUID
+                if (!instanceId || typeof instanceId !== 'string') {
+                    console.warn(`ID d'instance non trouvé dans la réponse, recherche via SOPInstanceUID: ${sopInstanceUID}`);
+                    const instancesResponse = await axios.get('http://localhost:8042/instances');
+                    const instances = instancesResponse.data;
+
+                    for (const id of instances) {
+                        const instanceDetails = await axios.get(`http://localhost:8042/instances/${id}`);
+                        const mainDicomTags = instanceDetails.data.MainDicomTags;
+                        if (mainDicomTags.SOPInstanceUID === sopInstanceUID) {
+                            instanceId = id;
+                            console.log(`Instance trouvée via SOPInstanceUID: ${instanceId}`);
+                            break;
+                        }
+                    }
+                }
+
+                if (!instanceId) {
+                    console.error(`Impossible de trouver l'ID d'instance pour le fichier ${file.originalname}`);
+                    continue;
+                }
+
+                uploadedInstanceIds.push(instanceId);
+
+                const metadataResponse = await axios.get(`http://localhost:8042/instances/${instanceId}`);
+                const mainDicomTags = metadataResponse.data.MainDicomTags;
+
+                // Use values from Orthanc if available, otherwise fall back to the file's values
+                const studyInstanceUID = mainDicomTags.StudyInstanceUID || studyInstanceUIDFromFile || '';
+                const examDate = mainDicomTags.StudyDate
+                    ? new Date(
+                        mainDicomTags.StudyDate.substring(0, 4),
+                        mainDicomTags.StudyDate.substring(4, 6) - 1,
+                        mainDicomTags.StudyDate.substring(6, 8)
+                    )
+                    : examDateFromFile;
+                const patientName = mainDicomTags.PatientName || patientNameFromFile || 'Unknown';
+
+                instanceData.push({
+                    instanceId,
+                    studyInstanceUID,
+                    examDate,
+                    patientName,
+                });
             } catch (err) {
-                console.error(`Erreur lors de l'upload du fichier ${file.originalname}:`, {
-                    message: err.message,
-                    status: err.response?.status,
-                    data: err.response?.data
-                });
-                failedFiles.push({
-                    filename: file.originalname,
-                    reason: `Erreur Orthanc: ${err.message}${err.response?.status ? ` (Status: ${err.response.status})` : ''}`
-                });
+                console.error(`Erreur lors de l'upload du fichier ${file.originalname}:`, err.message);
+                if (err.response) {
+                    console.error(`Détails de l'erreur Orthanc: Statut ${err.response.status}, Données:`, err.response.data);
+                    if (typeof err.response.data !== 'object') {
+                        console.error(`Réponse brute d'Orthanc: ${err.response.data}`);
+                    }
+                } else {
+                    console.error('Aucune réponse d\'Orthanc disponible:', err);
+                }
+                if (instanceId) {
+                    try {
+                        await axios.delete(`http://localhost:8042/instances/${instanceId}`);
+                        console.log(`Instance ${instanceId} supprimée d'Orthanc suite à une erreur`);
+                    } catch (deleteErr) {
+                        console.error(`Échec de la suppression de l'instance ${instanceId} sur Orthanc:`, deleteErr.message);
+                    }
+                }
                 continue;
             } finally {
                 if (fs.existsSync(file.path)) {
@@ -428,25 +543,52 @@ const uploadDicom = async (req, res) => {
             }
         }
 
-        if (instanceIds.length === 0) {
-            return res.status(400).json({
-                message: "Aucun fichier DICOM valide n'a été uploadé",
-                failedFiles
-            });
+        if (instanceData.length === 0) {
+            return res.status(400).json({ message: "Aucun fichier DICOM valide n'a été uploadé. Vérifiez les fichiers ou le serveur Orthanc." });
         }
 
-        // Mettre à jour le dossier avec les nouveaux IDs d'instances
-        dossier.dicomInstances.push(...instanceIds);
-        await dossier.save();
+        console.log('instanceData to be saved:', JSON.stringify(instanceData, null, 2));
+
+        dossier.dicomInstances.push(...instanceData);
+
+        let saveSuccess = false;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+                await dossier.save();
+                console.log(`Dossier ${dossierId} saved successfully with ${instanceData.length} new DICOM instances on attempt ${attempt}`);
+                saveSuccess = true;
+                break;
+            } catch (saveError) {
+                console.error(`Erreur lors de la sauvegarde du dossier (tentative ${attempt}):`, saveError.message, saveError.stack);
+                if (attempt === 3) {
+                    for (const instanceId of uploadedInstanceIds) {
+                        try {
+                            await axios.delete(`http://localhost:8042/instances/${instanceId}`);
+                            console.log(`Instance ${instanceId} deleted from Orthanc due to database save failure`);
+                        } catch (deleteErr) {
+                            console.error(`Failed to delete instance ${instanceId} from Orthanc:`, deleteErr.message);
+                        }
+                    }
+                    return res.status(500).json({
+                        message: "Erreur lors de la sauvegarde des données dans la base de données après plusieurs tentatives",
+                        error: saveError.message,
+                    });
+                }
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+        }
+
+        if (!saveSuccess) {
+            return res.status(500).json({ message: "Échec de la sauvegarde après plusieurs tentatives" });
+        }
 
         res.json({
             message: "Fichiers DICOM uploadés avec succès",
-            instanceIds,
-            failedFiles: failedFiles.length > 0 ? failedFiles : undefined
+            instances: instanceData,
         });
     } catch (error) {
         console.error("Erreur dans uploadDicom:", error.message, error.stack);
-        res.status(500).json({ message: "Erreur lors de l'upload des fichiers DICOM" });
+        res.status(500).json({ message: "Erreur lors de l'upload des fichiers DICOM", error: error.message });
     }
 };
 

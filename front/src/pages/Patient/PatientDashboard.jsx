@@ -47,11 +47,6 @@ function Patient() {
                         <div className="space-y-4">
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
-                                    <img
-                                        src="https://randomuser.me/api/portraits/men/10.jpg"
-                                        alt="Doctor"
-                                        className="w-10 h-10 rounded-full"
-                                    />
                                     <div>
                                         <p className="font-medium text-gray-800">Dr. Sathish</p>
                                     </div>
@@ -60,11 +55,6 @@ function Patient() {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
-                                    <img
-                                        src="https://randomuser.me/api/portraits/women/10.jpg"
-                                        alt="Doctor"
-                                        className="w-10 h-10 rounded-full"
-                                    />
                                     <div>
                                         <p className="font-medium text-gray-800">Dr. Ram Kumar</p>
                                     </div>
@@ -73,11 +63,6 @@ function Patient() {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
-                                    <img
-                                        src="https://randomuser.me/api/portraits/men/50.jpg"
-                                        alt="Doctor"
-                                        className="w-10 h-10 rounded-full"
-                                    />
                                     <div>
                                         <p className="font-medium text-gray-800">Dr. Mohan</p>
                                     </div>
@@ -86,11 +71,7 @@ function Patient() {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
-                                    <img
-                                        src="https://randomuser.me/api/portraits/women/30.jpg"
-                                        alt="Doctor"
-                                        className="w-10 h-10 rounded-full"
-                                    />
+
                                     <div>
                                         <p className="font-medium text-gray-800">Dr. Vicky</p>
                                     </div>
@@ -99,11 +80,7 @@ function Patient() {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
-                                    <img
-                                        src="https://randomuser.me/api/portraits/women/50.jpg"
-                                        alt="Doctor"
-                                        className="w-10 h-10 rounded-full"
-                                    />
+
                                     <div>
                                         <p className="font-medium text-gray-800">Dr. Naveen</p>
                                     </div>

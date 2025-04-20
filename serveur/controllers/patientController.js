@@ -4,20 +4,6 @@ const Rendezvous = require('../models/rendezVous');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
 
-
-const verifyToken = (req) => {
-    const token = req.cookies.authToken;
-    if (!token) {
-        throw new Error('Token non fourni');
-    }
-    try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        return decoded.user.id;
-    } catch (error) {
-        throw new Error('Token invalide');
-    }
-};
-
 const getPatients = async (req, res) => {
     try {
         const { authToken } = req.cookies;
@@ -29,12 +15,10 @@ const getPatients = async (req, res) => {
         const userId = decoded.user.id;
         const user = await User.findById(userId);
 
-        // Vérification si l'utilisateur existe
         if (!user) {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
 
-        // Vérification du rôle de l'utilisateur
         if (user.role !== 'secretaire' && user.role !== 'medecin') {
             return res.status(403).json({ message: 'Accès interdit. Rôle insuffisant.' });
         }
@@ -50,21 +34,29 @@ const getPatients = async (req, res) => {
             const latestRendezvous = patient.rendezvous.sort((a, b) =>
                 new Date(b.dateRendezVous) - new Date(a.dateRendezVous)
             )[0];
+            // Log to diagnose missing userId or prenom/nom
+            if (!patient.userId) {
+                console.warn(`Patient ${patient._id} has no valid userId`);
+            }
+            if (!patient.userId?.prenom || !patient.userId?.nom) {
+                console.warn(`Patient ${patient._id} userId missing prenom/nom:`, patient.userId);
+            }
             return {
-                id: patient.userId._id.toString(),
-                name: `${patient.userId.prenom} ${patient.userId.nom}`,
+                id: patient.userId?._id.toString() || patient._id.toString(),
+                name: patient.userId ? `${patient.userId.prenom || ''} ${patient.userId.nom || ''}`.trim() : 'Nom inconnu',
                 age: calculateAge(patient.dateNaissance),
                 lastAppointment: latestRendezvous
                     ? new Date(latestRendezvous.dateRendezVous).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' })
                     : 'Aucun rendez-vous',
-                phone: patient.numeroTelephone,
-                email: patient.userId.email,
+                phone: patient.numeroTelephone || 'Non fourni',
+                email: patient.userId?.email || 'Non fourni',
+                groupeSanguin: patient.groupeSanguin || 'Non spécifié', // Added new field
             };
         });
 
         res.json(patientList);
     } catch (error) {
-        console.error('Erreur dans getPatients:', error.message);
+        console.error('Erreur dans getPatients:', error.message, error.stack);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 };
@@ -72,13 +64,13 @@ const getPatients = async (req, res) => {
 const calculateAge = (birthDate) => {
     if (!birthDate) {
         console.error('calculateAge: birthDate is null or undefined');
-        return null; // Return null to indicate missing data
+        return null;
     }
 
     const birth = new Date(birthDate);
     if (isNaN(birth.getTime())) {
         console.error(`calculateAge: Invalid birthDate format: ${birthDate}`);
-        return null; // Return null for invalid dates
+        return null;
     }
 
     const today = new Date();
@@ -90,7 +82,7 @@ const calculateAge = (birthDate) => {
 
     if (age < 0) {
         console.warn(`calculateAge: Future birthDate detected: ${birthDate}, age: ${age}`);
-        return 0; // Return 0 for future dates
+        return 0;
     }
 
     return age;
@@ -105,7 +97,6 @@ const getPatientDetails = async (req, res) => {
             return res.status(403).json({ message: 'Accès interdit. Seuls les secrétaires/medecins peuvent voir les détails d\'autres patients.' });
         }
 
-        // Trouver le patient avec l'userId
         const patient = await Patient.findOne({ userId })
             .populate('userId', 'prenom nom email')
             .populate({
@@ -121,15 +112,14 @@ const getPatientDetails = async (req, res) => {
             return res.status(404).json({ message: 'Aucun patient trouvé pour cet utilisateur' });
         }
 
-        // Construire les données du patient
         const patientData = {
             id: patient.userId._id.toString(),
-            prenom: patient.userId.prenom,
-            nom: patient.userId.nom,
-            email: patient.userId.email,
+            prenom: patient.userId.prenom || 'Non spécifié',
+            nom: patient.userId.nom || 'Non spécifié',
+            email: patient.userId.email || 'Non fourni',
             dateNaissance: patient.dateNaissance,
-            phone: patient.numeroTelephone,
-            groupeSanguin: patient.groupeSanguin || null,
+            phone: patient.numeroTelephone || 'Non fourni',
+            groupeSanguin: patient.groupeSanguin || 'Non spécifié',
             allergies: patient.allergies || [],
             antecedent: patient.antecedent || '',
             dossiers: patient.dossierMedical.map(dossier => ({
@@ -148,17 +138,10 @@ const getPatientDetails = async (req, res) => {
                 color: r.color,
             })),
             assurance: {
-                number: patient.assurance.numero,
-                expiry: patient.assurance.expiry.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }),
-                status: patient.assurance.status,
+                number: patient.assurance.numero || 'Non fourni',
+                expiry: patient.assurance.expiry?.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' }) || 'Non spécifié',
+                status: patient.assurance.status || 'Inconnu',
             },
-            medicalImages: patient.medicalImages.map(img => ({
-                name: img.name,
-                type: img.type,
-                size: img.size,
-                url: img.url,
-                uploadDate: img.uploadDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-            })),
             documents: patient.documents.map(doc => ({
                 name: doc.name,
                 type: doc.type,
@@ -174,6 +157,7 @@ const getPatientDetails = async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur' });
     }
 };
+
 const createPatient = async (req, res) => {
     try {
         console.log('Received patient data:', req.body);
@@ -209,7 +193,6 @@ const createPatient = async (req, res) => {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
 
-        // Validate dateNaissance
         const birthDate = new Date(dateNaissance);
         const today = new Date();
         if (isNaN(birthDate.getTime())) {
@@ -257,6 +240,7 @@ const createPatient = async (req, res) => {
         res.status(500).json({ message: 'Erreur serveur', error: error.message });
     }
 };
+
 module.exports = {
     getPatientDetails,
     getPatients,

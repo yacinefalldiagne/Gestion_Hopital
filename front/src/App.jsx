@@ -20,6 +20,7 @@ import AddDossier from './pages/Secretaire/AddDossier';
 import PatientsMedecin from "./pages/Medecin/Patients";
 import EditPatient from "./pages/Medecin/EditPatient";
 import Dicom from "./pages/Medecin/ImageDicom";
+import Medecins from "./pages/Secretaire/Medecins";
 
 function App() {
   const location = useLocation();
@@ -116,6 +117,7 @@ function App() {
             <Route path="dossier/:id" element={<Dossier />} />
             <Route path="dossier" element={<Dossier />} />
             <Route path="patients/:id/dossier/add" element={<AddDossier />} />
+            <Route path="medecins" element={<Medecins />} />
             {/* Autres sous-routes pour la secrétaire */}
 
           </Route>

@@ -4,6 +4,7 @@ export const SIDEBAR_LINKS = {
     secretaire: [
         { id: 1, name: "Tableau de bord", path: "/secretaire", icon: LuBox },
         { id: 2, name: "Dossiers", path: "/secretaire/dossier", icon: LuFolder },
+        { id: 3, name: "Médecins", path: "/secretaire/medecins", icon: LuUser },
         { id: 3, name: "Patients", path: "/secretaire/patients", icon: LuUsers },
         { id: 6, name: "Rendez-vous", path: "/secretaire/schedule", icon: LuCalendar },
         { id: 4, name: "Traçabilité", path: "/secretaire/traceability", icon: LuHistory },
