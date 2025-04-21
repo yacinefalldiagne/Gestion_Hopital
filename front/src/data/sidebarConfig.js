@@ -11,17 +11,17 @@ export const SIDEBAR_LINKS = {
     ],
     medecin: [
         { id: 1, name: "Tableau de bord", path: "/medecin", icon: LuBox },
-        { id: 2, name: "Donées non DICOM", path: "/medecin/non-dicom", icon: LuFileText },
+        { id: 2, name: "Données non DICOM", path: "/medecin/non-dicom", icon: LuFileText },
         { id: 3, name: "Images DICOM", path: "/medecin/dicom", icon: LuImage },
-        { id: 4, name: "Rapport", path: "/medecin/report", icon: LuFileText },
+        { id: 4, name: "Rapport", path: "/medecin/patient/:patientId/reports", icon: LuFileText }, // Ajusté pour correspondre à App.jsx
         { id: 5, name: "Historique des consultations", path: "/medecin/history", icon: LuHistory },
         { id: 6, name: "Compte-rendu", path: "/medecin/download-report", icon: LuDownload },
     ],
     patient: [
         { id: 1, name: "Tableau de bord", path: "/patient", icon: LuBox },
-        { id: 2, name: "Mon dossier médical", path: "/patient/dossier", icon: LuFolder },
-        { id: 2, name: "Prendre rendez-vous", path: "/patient/schedule", icon: LuCalendar },
-        { id: 3, name: "Mes rendez-vous", path: "/patient/appointments", icon: LuHistory },
-        { id: 4, name: "Compte-rendu", path: "/patient/download-report", icon: LuDownload },
+        { id: 2, name: "Mon dossier médical", path: "/patient/medical-record", icon: LuFolder }, // Corrigé : "/patient/dossier" -> "/patient/medical-record"
+        { id: 3, name: "Prendre rendez-vous", path: "/patient/book-appointment", icon: LuCalendar }, // Corrigé : "/patient/schedule" -> "/patient/book-appointment"
+        { id: 4, name: "Mes rendez-vous", path: "/patient/appointments", icon: LuHistory },
+        { id: 5, name: "Compte-rendu", path: "/patient/download-report", icon: LuDownload },
     ],
 };

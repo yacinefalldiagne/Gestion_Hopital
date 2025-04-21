@@ -4,6 +4,9 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 require('dotenv').config();
 const fileUploadRoutes = require('./routes/fileUpload');
+const dicomRoutes = require('./routes/dicom');
+const reportRoutes = require('./routes/reports'); // Ajout des routes des rapports
+const patientRoutes = require('./routes/patients'); // Ajout des routes des patients
 
 const app = express();
 
@@ -25,6 +28,10 @@ connectDB().then(() => {
 
   // Routes pour la gestion des fichiers non DICOM
   app.use('/api/nondicom', fileUploadRoutes);
+    // Routes pour la gestion des fichiers DICOM
+  app.use('/api/dicom', require('./routes/dicom'));
+  app.use('/api/reports', reportRoutes); // Ajout des routes des rapports
+  app.use('/api/patients', patientRoutes); // Ajout des routes des patients
 
   // Route de test simple
   app.get('/api/test', (req, res) => {

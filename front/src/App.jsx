@@ -17,8 +17,12 @@ import PatientDetails from './pages/Secretaire/PatientDetails';
 import AddPatient from './pages/Secretaire/AddPatient';
 import NonDicomData from './pages/Medecin/NonDicomData';
 import DicomData from './pages/Medecin/DicomData';
-import ReportPage from './pages/Medecin/ReportPage'; // Correction du chemin
-import PatientsList from './pages/Medecin/PatientsList'; // Assurez-vous que ce fichier existe maintenant
+import ReportPage from './pages/Medecin/ReportPage';
+import PatientsList from './pages/Medecin/PatientsList';
+import MedicalRecord from './pages/Patient/MedicalRecord';
+import Appointments from './pages/Patient/Appointments';
+import BookAppointment from './pages/Patient/BookAppointment';
+import DownloadReport from './pages/Patient/DownloadReport'; 
 
 function App() {
   const location = useLocation();
@@ -81,12 +85,19 @@ function App() {
 
         {/* Routes privées avec Layout */}
         <Route element={<Layout userRole={userRole} />}>
-          {/* Patient */}
+          {/* Patient avec sous-routes */}
           <Route path="/patient" element={
             <PrivateRoute allowedRoles={['patient']}>
-              <Patient />
+              <Outlet />
             </PrivateRoute>
-          } />
+          }>
+            <Route index element={<Patient />} />
+            <Route path="medical-record" element={<MedicalRecord />} />
+            <Route path="appointments" element={<Appointments />} />
+            <Route path="book-appointment" element={<BookAppointment />} />
+            <Route path="download-report" element={<DownloadReport />} />
+
+          </Route>
 
           {/* Médecin avec sous-routes */}
           <Route path="/medecin" element={
