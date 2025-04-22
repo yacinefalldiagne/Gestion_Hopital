@@ -21,6 +21,10 @@ import PatientsMedecin from "./pages/Medecin/Patients";
 import EditPatient from "./pages/Medecin/EditPatient";
 import Dicom from "./pages/Medecin/ImageDicom";
 import Medecins from "./pages/Secretaire/Medecins";
+import MedicalRecord from './pages/Patient/MedicalRecord';
+import Appointments from './pages/Patient/Appointments';
+import BookAppointment from './pages/Patient/BookAppointment';
+import DownloadReport from './pages/Patient/DownloadReport';
 
 function App() {
   const location = useLocation();
