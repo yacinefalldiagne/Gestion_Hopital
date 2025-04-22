@@ -3,15 +3,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 require('dotenv').config();
-<<<<<<< HEAD
-const fileUploadRoutes = require('./routes/fileUpload');
-const dicomRoutes = require('./routes/dicom');
-const reportRoutes = require('./routes/reports'); // Ajout des routes des rapports
-const patientRoutes = require('./routes/patients'); // Ajout des routes des patients
-
-=======
 const path = require('path');
->>>>>>> 2de8f19441e56483e91d439bc939ba42816d7018
 const app = express();
 
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
