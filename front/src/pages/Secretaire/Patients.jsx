@@ -1,125 +1,178 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { FaPlus, FaEye, FaSearch, FaSort } from "react-icons/fa";
+import axios from "axios";
 
 function Patients() {
-    // Données simulées pour les patients
-    const [patients, setPatients] = useState([
-        { id: 1, name: "Jean Dupont", age: 45, lastAppointment: "15 Avr 2025", phone: "+33 6 12 34 56 78", email: "jean.dupont@email.com" },
-        { id: 2, name: "Marie Claire", age: 32, lastAppointment: "10 Avr 2025", phone: "+33 6 98 76 54 32", email: "marie.claire@email.com" },
-        { id: 3, name: "Paul Martin", age: 60, lastAppointment: "5 Avr 2025", phone: "+33 6 45 67 89 01", email: "paul.martin@email.com" },
-        { id: 4, name: "Sophie Durand", age: 28, lastAppointment: "1 Avr 2025", phone: "+33 6 23 45 67 89", email: "sophie.durand@email.com" },
-    ]);
-
+    const [patients, setPatients] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [sortBy, setSortBy] = useState("name");
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
-    // Filtrer les patients en fonction de la recherche
+    useEffect(() => {
+        const fetchPatients = async () => {
+            try {
+                const response = await axios.get('http://localhost:5000/api/patients', {
+                    withCredentials: true,
+                });
+                console.log("Raw patients response:", response.data); // Log to diagnose
+                const transformedPatients = response.data.map(patient => ({
+                    id: patient.id || patient._id || 'unknown',
+                    name: patient.name || 'Nom inconnu',
+                    age: calculateAge(patient.dateNaissance),
+                    lastAppointment: patient.lastAppointment || 'Aucun rendez-vous',
+                    phone: patient.phone || 'Non fourni',
+                    email: patient.email || 'Non fourni',
+                    groupeSanguin: patient.groupeSanguin || 'Non spécifié',
+                }));
+                console.log("Transformed patients:", transformedPatients); // Log to diagnose
+                setPatients(transformedPatients);
+            } catch (err) {
+                setError(err.response?.data?.message || 'Erreur lors de la récupération des patients');
+                console.error("Fetch patients error:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchPatients();
+    }, []);
+
+    const calculateAge = (birthDate) => {
+        if (!birthDate) {
+            return null; // Handle missing birthDate
+        }
+        const birth = new Date(birthDate);
+        if (isNaN(birth.getTime())) {
+            return null; // Handle invalid date
+        }
+        const today = new Date();
+        let age = today.getFullYear() - birth.getFullYear();
+        const monthDiff = today.getMonth() - birth.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+            age--;
+        }
+        return age >= 0 ? age : 0; // Handle future dates
+    };
+
     const filteredPatients = patients.filter((patient) =>
-        patient.name.toLowerCase().includes(searchTerm.toLowerCase())
+        (patient.name || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    // Trier les patients
     const sortedPatients = [...filteredPatients].sort((a, b) => {
         if (sortBy === "name") {
-            return a.name.localeCompare(b.name);
+            return (a.name || '').localeCompare(b.name || '');
         } else if (sortBy === "lastAppointment") {
-            return new Date(b.lastAppointment) - new Date(a.lastAppointment);
+            return new Date(b.lastAppointment || 0) - new Date(a.lastAppointment || 0);
         }
         return 0;
     });
 
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600"></div>
+            </div>
+        );
+    }
+    if (error) {
+        return <div className="text-center text-red-600 text-lg">{error}</div>;
+    }
+
     return (
         <div className="min-h-screen bg-gray-50 p-6">
-            {/* En-tête avec statistiques */}
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-3xl font-bold text-gray-800">Patients</h1>
-                <div className="bg-white p-4 rounded-lg shadow-sm">
-                    <p className="text-sm text-gray-600">Total Patients</p>
-                    <p className="text-2xl font-semibold text-gray-800">{patients.length}</p>
+            <div className="max-w-6xl mx-auto">
+                {/* Header with stats */}
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-8">
+                    <h1 className="text-3xl font-bold text-gray-800 mb-4 sm:mb-0">Patients</h1>
+                    <div className="bg-white p-4 rounded-lg shadow-sm">
+                        <p className="text-sm text-gray-600">Total Patients</p>
+                        <p className="text-2xl font-semibold text-gray-800">{patients.length}</p>
+                    </div>
                 </div>
-            </div>
 
-            {/* Barre de recherche et tri */}
-            <div className="flex justify-between items-center mb-6">
-                <div className="relative w-full max-w-md">
-                    <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <input
-                        type="text"
-                        placeholder="Rechercher un patient..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                {/* Search and sort */}
+                <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                    <div className="relative w-full max-w-md">
+                        <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <input
+                            type="text"
+                            placeholder="Rechercher un patient..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                        />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <FaSort className="text-gray-600" />
+                        <select
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value)}
+                            className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                        >
+                            <option value="name">Trier par nom</option>
+                            <option value="lastAppointment">Trier par dernier rendez-vous</option>
+                        </select>
+                    </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                    <FaSort className="text-gray-600" />
-                    <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
-                        className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+
+                {/* Add patient button and patient grid */}
+                <div className="flex flex-col space-y-6">
+                    <Link
+                        to="/secretaire/patient/add"
+                        className="flex items-center space-x-2 w-fit text-white bg-blue-600 py-2 px-4 rounded-full hover:bg-blue-700 transition-colors shadow-md"
                     >
-                        <option value="name">Trier par nom</option>
-                        <option value="lastAppointment">Trier par dernier rendez-vous</option>
-                    </select>
-                </div>
-            </div>
+                        <FaPlus />
+                        <span>Ajouter un patient</span>
+                    </Link>
 
-            {/* Bouton Ajouter un nouveau patient et grille des patients */}
-            <div className="flex flex-col space-y-6">
-                {/* Bouton Ajouter un nouveau patient */}
-                <Link
-                    to="/secretaire/patient/add"
-                    className="flex items-center space-x-2 w-fit text-white bg-blue-600 py-2 px-4 rounded-full hover:bg-blue-700 transition-colors shadow-md"
-                >
-                    <FaPlus />
-                    <span>Ajouter un patient</span>
-                </Link>
-
-                {/* Grille des patients */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sortedPatients.length > 0 ? (
-                        sortedPatients.map((patient) => (
-                            <div
-                                key={patient.id}
-                                className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
-                            >
-                                <div className="flex items-center space-x-4 mb-4">
-                                    <img
-                                        src="https://via.placeholder.com/50"
-                                        alt="Patient"
-                                        className="w-12 h-12 rounded-full"
-                                    />
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-gray-800">{patient.name}</h3>
-                                        <p className="text-sm text-gray-600">{patient.age} ans</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {sortedPatients.length > 0 ? (
+                            sortedPatients.map((patient) => (
+                                <div
+                                    key={patient.id}
+                                    className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+                                >
+                                    <div className="flex items-center space-x-4 mb-4">
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-gray-800">
+                                                {patient.name || 'Nom inconnu'}
+                                            </h3>
+                                            <p className="text-sm text-gray-600">
+                                                {patient.age != null ? `${patient.age} ans` : 'Âge inconnu'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="text-sm text-gray-600">
+                                            <span className="font-medium">Téléphone :</span> {patient.phone}
+                                        </p>
+                                        <p className="text-sm text-gray-600">
+                                            <span className="font-medium">Groupe sanguin :</span> {patient.groupeSanguin}
+                                        </p>
+                                        <p className="text-sm text-gray-600">
+                                            <span className="font-medium">Dernier rendez-vous :</span>{" "}
+                                            {patient.lastAppointment}
+                                        </p>
+                                    </div>
+                                    <div className="mt-4">
+                                        <Link
+                                            to={`/secretaire/patient/${patient.id}`}
+                                            className="flex items-center space-x-2 text-blue-600 hover:text-blue-800 transition"
+                                        >
+                                            <FaEye />
+                                            <span>Voir détails</span>
+                                        </Link>
                                     </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <p className="text-sm text-gray-600">
-                                        <span className="font-medium">Téléphone :</span> {patient.phone}
-                                    </p>
-                                    <p className="text-sm text-gray-600">
-                                        <span className="font-medium">Dernier rendez-vous :</span>{" "}
-                                        {patient.lastAppointment}
-                                    </p>
-                                </div>
-                                <div className="mt-4">
-                                    <Link
-                                        to={`/secretaire/patient/${patient.id}`}
-                                        className="flex items-center space-x-2 text-blue-600 hover:text-blue-800"
-                                    >
-                                        <FaEye />
-                                        <span>Voir détails</span>
-                                    </Link>
-                                </div>
+                            ))
+                        ) : (
+                            <div className="col-span-full text-center text-gray-600 text-lg">
+                                Aucun patient trouvé.
                             </div>
-                        ))
-                    ) : (
-                        <div className="col-span-full text-center text-gray-600">
-                            Aucun patient trouvé.
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

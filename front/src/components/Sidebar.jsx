@@ -1,14 +1,29 @@
 import React, { useState } from "react";
-import { LuUser } from "react-icons/lu";
-import { Link } from "react-router-dom";
+import { LuUser, LuLogOut } from "react-icons/lu";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
 import logo from "../assets/image/logo.avif";
 import { SIDEBAR_LINKS } from "../data/sidebarConfig";
 
 const Sidebar = ({ userRole }) => {
     const [activeLink, setActiveLink] = useState(0);
+    const navigate = useNavigate();
 
     const handleClick = (index) => {
         setActiveLink(index);
+    };
+
+    const handleLogout = async () => {
+        try {
+            await axios.post(
+                'http://localhost:5000/api/auth/logout',
+                {},
+                { withCredentials: true }
+            );
+            navigate('/login');
+        } catch (err) {
+            console.error('Erreur lors de la déconnexion:', err);
+        }
     };
 
     // Sélectionner les liens en fonction du rôle de l'utilisateur
@@ -25,7 +40,7 @@ const Sidebar = ({ userRole }) => {
                     <li
                         key={index}
                         className={`font-medium rounded-md py-2 px-5 hover:bg-blue-200 hover:text-gray-900  
-                            ${activeLink === index ? "bg-blue-200 text-gray-900" : ""}`}
+              ${activeLink === index ? "bg-blue-200 text-gray-900" : ""}`}
                     >
                         <Link
                             to={link.path}
@@ -33,17 +48,20 @@ const Sidebar = ({ userRole }) => {
                             onClick={() => handleClick(index)}
                         >
                             <span>{React.createElement(link.icon, { className: "text-xl" })}</span>
-                            <span className="text-sm hidden md:flex">
-                                {link.name}
-                            </span>
+                            <span className="text-sm hidden md:flex">{link.name}</span>
                         </Link>
                     </li>
                 ))}
             </ul>
 
             <div className="w-full px-4 py-4">
-                <button className="flex items-center justify-center md:justify-start space-x-2 w-full text-sm text-gray-800 py-2 px-5 bg-blue-200 rounded-md cursor-pointer hover:bg-blue-300 transition-colors">
-                    <span className="text-lg"><LuUser /></span>
+                <button
+                    onClick={handleLogout}
+                    className="flex items-center justify-center md:justify-start space-x-2 w-full text-sm text-gray-800 py-2 px-5 bg-blue-200 rounded-md cursor-pointer hover:bg-blue-300 transition-colors"
+                >
+                    <span className="text-lg">
+                        <LuLogOut />
+                    </span>
                     <span className="hidden md:flex">Déconnexion</span>
                 </button>
             </div>

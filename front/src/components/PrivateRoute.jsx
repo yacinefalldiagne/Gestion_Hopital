@@ -8,22 +8,17 @@ const PrivateRoute = ({ children, allowedRoles }) => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
       try {
-        const response = await axios.get('http://localhost:5000/api/auth/me', {
-          headers: {
-            'x-auth-token': token,
-          },
+        const response = await axios.get('http://localhost:5000/api/auth/profile', {
+          withCredentials: true, // Ensure cookies are sent
         });
         setUser(response.data);
       } catch (error) {
         console.error('Erreur lors de la vérification de l’utilisateur:', error);
-        localStorage.removeItem('token');
+        // If 401, clear any stored state and redirect to login
+        if (error.response?.status === 401) {
+          setUser(null);
+        }
       } finally {
         setLoading(false);
       }
@@ -41,7 +36,7 @@ const PrivateRoute = ({ children, allowedRoles }) => {
   }
 
   if (!allowedRoles.includes(user.role)) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/unauthorized" />; // Redirect to an unauthorized page or login
   }
 
   return children;

@@ -15,14 +15,12 @@ import Patients from './pages/Secretaire/Patients';
 import AppointmentSecretaire from './pages/Secretaire/Appointment';
 import PatientDetails from './pages/Secretaire/PatientDetails';
 import AddPatient from './pages/Secretaire/AddPatient';
-import NonDicomData from './pages/Medecin/NonDicomData';
-import DicomData from './pages/Medecin/DicomData';
-import ReportPage from './pages/Medecin/ReportPage';
-import PatientsList from './pages/Medecin/PatientsList';
-import MedicalRecord from './pages/Patient/MedicalRecord';
-import Appointments from './pages/Patient/Appointments';
-import BookAppointment from './pages/Patient/BookAppointment';
-import DownloadReport from './pages/Patient/DownloadReport'; 
+import Dossier from './pages/Secretaire/Dossier';
+import AddDossier from './pages/Secretaire/AddDossier';
+import PatientsMedecin from "./pages/Medecin/Patients";
+import EditPatient from "./pages/Medecin/EditPatient";
+import Dicom from "./pages/Medecin/ImageDicom";
+import Medecins from "./pages/Secretaire/Medecins";
 
 function App() {
   const location = useLocation();
@@ -106,10 +104,10 @@ function App() {
             </PrivateRoute>
           }>
             <Route index element={<MedecinDashboard />} />
-            <Route path="patients" element={<PatientsList />} />
-            <Route path="non-dicom" element={<NonDicomData />} />
-            <Route path="dicom" element={<DicomData />} />
-            <Route path="patient/:patientId/reports" element={<ReportPage />} />
+            <Route path="patients" element={<PatientsMedecin />} />
+            <Route path="dossier-medical/:id" element={<EditPatient />} />
+            <Route path="dicom" element={<Dicom />} />
+
           </Route>
 
           {/* Secrétaire avec sous-routes */}
@@ -123,6 +121,12 @@ function App() {
             <Route path="patient/:id" element={<PatientDetails />} />
             <Route path="schedule" element={<AppointmentSecretaire />} />
             <Route path="patient/add" element={<AddPatient />} />
+            <Route path="dossier/:id" element={<Dossier />} />
+            <Route path="dossier" element={<Dossier />} />
+            <Route path="patients/:id/dossier/add" element={<AddDossier />} />
+            <Route path="medecins" element={<Medecins />} />
+            {/* Autres sous-routes pour la secrétaire */}
+
           </Route>
         </Route>
       </Routes>

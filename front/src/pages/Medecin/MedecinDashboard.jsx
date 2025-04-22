@@ -101,11 +101,6 @@ function MedecinDashboard() {
             {appointments.map((appointment) => (
               <div key={appointment.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <img
-                    src="https://randomuser.me/api/portraits/women/80.jpg"
-                    alt="Patient"
-                    className="w-10 h-10 rounded-full"
-                  />
                   <div>
                     <p className="font-medium text-gray-800">{appointment.patient}</p>
                     <p className="text-sm text-gray-600">{appointment.type}</p>

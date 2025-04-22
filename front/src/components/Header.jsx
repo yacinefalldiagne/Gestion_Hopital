@@ -19,7 +19,6 @@ const Header = () => {
                         <GoBell size={28} />
                         <span className="absolute top-0 right-0 -mt-1 -mr-1 flex justify-center items-center bg-blue-600 text-white font-semibold text-[10px] w-5 h-4 rounded-full border-2 border-white">5</span>
                     </button>
-                    <img className="w-8 g-8 rounded-full border-2 border-blue-400" src="https://randomuser.me/api/portraits/women/50.jpg" alt="" />
                 </div>
 
             </div>
