@@ -1,8 +1,12 @@
 import React from "react";
 import { FaCalendarAlt, FaUser, FaFolder, FaChevronLeft, FaChevronRight, FaImage } from "react-icons/fa";
+
 import { Link } from "react-router-dom";
 
 function Secretaire() {
+    const daysOfWeek = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    const daysInMonth = Array.from({ length: 31 }, (_, i) => i + 1);
+    const firstDayOfMonth = new Date(2017, 11, 1).getDay(); // December 2017, starts on Friday (index 5)
     // Données simulées pour les rendez-vous
     const appointments = [
         { id: 1, patient: "Jean Dupont", time: "10:00", doctor: "Dr. Sathish" },
@@ -48,6 +52,52 @@ function Secretaire() {
 
             {/* Main Content */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="md:col-span-3 bg-white p-6 rounded-lg shadow-sm">
+                    <div className="flex justify-between items-center mb-4">
+                        <div className="flex items-center space-x-2">
+                            <FaChevronLeft className="text-gray-600" />
+                            <span className="text-lg font-semibold text-gray-800">December 2017</span>
+                            <FaChevronRight className="text-gray-600" />
+                        </div>
+                        <div className="flex space-x-2">
+                            <button className="px-3 py-1 bg-pink-100 text-pink-600 rounded-lg">AM</button>
+                            <button className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg">PM</button>
+                            <button className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg">Month</button>
+                            <button className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg">Week</button>
+                            <button className="px-3 py-1 bg-gray-100 text-gray-600 rounded-lg">Day</button>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                        {daysOfWeek.map((day) => (
+                            <div key={day} className="text-center text-sm font-medium text-gray-600">
+                                {day}
+                            </div>
+                        ))}
+                        {Array(firstDayOfMonth).fill(null).map((_, index) => (
+                            <div key={`empty-${index}`} className="h-16"></div>
+                        ))}
+                        {daysInMonth.map((day) => (
+                            <div key={day} className="h-16 border border-gray-200 p-2 text-sm relative">
+                                <span>{day}</span>
+                                {day === 1 && (
+                                    <div className="absolute top-6 left-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded">9:00 AM Sathish</div>
+                                )}
+                                {day === 4 && (
+                                    <div className="absolute top-6 left-2 text-xs bg-pink-100 text-pink-600 px-2 py-1 rounded">11:00 AM Mohan</div>
+                                )}
+                                {day === 8 && (
+                                    <div className="absolute top-6 left-2 text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded">06:00 PM Naveen</div>
+                                )}
+                                {day === 10 && (
+                                    <div className="absolute top-6 left-2 text-xs bg-orange-100 text-orange-600 px-2 py-1 rounded">10:00 PM Vicky</div>
+                                )}
+                                {day === 20 && (
+                                    <div className="absolute top-6 left-2 text-xs bg-green-100 text-green-600 px-2 py-1 rounded">11:00 AM Sathish</div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                </div>
                 {/* Calendrier des rendez-vous */}
                 <div className="md:col-span-2 bg-white p-6 rounded-lg shadow-sm">
                     <h2 className="text-xl font-semibold text-gray-800 mb-4">Rendez-vous planifiés</h2>
