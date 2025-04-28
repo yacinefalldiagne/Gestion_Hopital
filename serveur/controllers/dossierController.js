@@ -8,12 +8,14 @@ const jwt = require("jsonwebtoken");
 const FormData = require("form-data");
 const axios = require("axios");
 
-const ORTHANC_URL = 'http://localhost:8042';
-const ORTHANC_AUTH = {
-    username: 'admin',
-    password: 'passer123'
+// Orthanc server configuration
+const orthanc_url = "http://localhost:8042";
+const orthanc_auth = {
+    username: "admin",
+    password: "passer123"
 };
 
+// Configure Multer for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, "Uploads/dossiers/");
@@ -191,7 +193,7 @@ const createDossier = async (req, res) => {
 
         let documentPath = "";
         if (file) {
-            documentPath = `/uploads/dossiers/${file.filename}`;
+            documentPath = `/Uploads/dossiers/${file.filename}`;
         }
 
         const dossier = new DossierMedical({
@@ -327,16 +329,14 @@ const getDicomInstance = async (req, res) => {
             return res.status(400).json({ message: "Instance ID is required" });
         }
 
-        const response = await axios.get(`${ORTHANC_URL}/instances/${id}`, {
-            auth: ORTHANC_AUTH
-        });
+        const response = await axios.get(`${orthanc_url}/instances/${id}`, { auth: orthanc_auth });
         const studyInstanceUID = response.data.MainDicomTags.StudyInstanceUID;
         res.json({
             id,
             mainDicomTags: response.data.MainDicomTags,
             previewUrl: `/instances/${id}/preview`,
             stoneViewerUrl: studyInstanceUID
-                ? `${ORTHANC_URL}/stone-webviewer/index.html?study=${studyInstanceUID}`
+                ? `${orthanc_url}/stone-webviewer/index.html?study=${studyInstanceUID}`
                 : null
         });
     } catch (error) {
@@ -364,9 +364,7 @@ const getDicomInstances = async (req, res) => {
         const instances = [];
         for (const instance of dicomInstances) {
             try {
-                const response = await axios.get(`${ORTHANC_URL}/instances/${instance.instanceId}`, {
-                    auth: ORTHANC_AUTH
-                });
+                const response = await axios.get(`${orthanc_url}/instances/${instance.instanceId}`, { auth: orthanc_auth });
                 instances.push({
                     id: instance.instanceId,
                     studyInstanceUID: instance.studyInstanceUID,
@@ -375,7 +373,7 @@ const getDicomInstances = async (req, res) => {
                     mainDicomTags: response.data.MainDicomTags,
                     previewUrl: `/instances/${instance.instanceId}/preview`,
                     stoneViewerUrl: instance.studyInstanceUID
-                        ? `${ORTHANC_URL}/stone-webviewer/index.html?study=${studyInstanceUID}`
+                        ? `${orthanc_url}/stone-webviewer/index.html?study=${instance.studyInstanceUID}`
                         : null,
                 });
             } catch (err) {
@@ -454,9 +452,9 @@ const uploadDicom = async (req, res) => {
                     continue;
                 }
 
-                const uploadResponse = await axios.post(`${ORTHANC_URL}/instances`, formData, {
+                const uploadResponse = await axios.post(`${orthanc_url}/instances`, formData, {
                     headers: { ...formData.getHeaders() },
-                    auth: ORTHANC_AUTH,
+                    auth: orthanc_auth,
                     responseType: 'text',
                 });
 
@@ -486,15 +484,11 @@ const uploadDicom = async (req, res) => {
                 // If instanceId is not in the response, query Orthanc using SOPInstanceUID
                 if (!instanceId || typeof instanceId !== 'string') {
                     console.warn(`ID d'instance non trouvé dans la réponse, recherche via SOPInstanceUID: ${sopInstanceUID}`);
-                    const instancesResponse = await axios.get(`${ORTHANC_URL}/instances`, {
-                        auth: ORTHANC_AUTH
-                    });
+                    const instancesResponse = await axios.get(`${orthanc_url}/instances`, { auth: orthanc_auth });
                     const instances = instancesResponse.data;
 
                     for (const id of instances) {
-                        const instanceDetails = await axios.get(`${ORTHANC_URL}/instances/${id}`, {
-                            auth: ORTHANC_AUTH
-                        });
+                        const instanceDetails = await axios.get(`${orthanc_url}/instances/${id}`, { auth: orthanc_auth });
                         const mainDicomTags = instanceDetails.data.MainDicomTags;
                         if (mainDicomTags.SOPInstanceUID === sopInstanceUID) {
                             instanceId = id;
@@ -511,9 +505,7 @@ const uploadDicom = async (req, res) => {
 
                 uploadedInstanceIds.push(instanceId);
 
-                const metadataResponse = await axios.get(`${ORTHANC_URL}/instances/${instanceId}`, {
-                    auth: ORTHANC_AUTH
-                });
+                const metadataResponse = await axios.get(`${orthanc_url}/instances/${instanceId}`, { auth: orthanc_auth });
                 const mainDicomTags = metadataResponse.data.MainDicomTags;
 
                 // Use values from Orthanc if available, otherwise fall back to the file's values
@@ -545,9 +537,7 @@ const uploadDicom = async (req, res) => {
                 }
                 if (instanceId) {
                     try {
-                        await axios.delete(`${ORTHANC_URL}/instances/${instanceId}`, {
-                            auth: ORTHANC_AUTH
-                        });
+                        await axios.delete(`${orthanc_url}/instances/${instanceId}`, { auth: orthanc_auth });
                         console.log(`Instance ${instanceId} supprimée d'Orthanc suite à une erreur`);
                     } catch (deleteErr) {
                         console.error(`Échec de la suppression de l'instance ${instanceId} sur Orthanc:`, deleteErr.message);
@@ -581,9 +571,7 @@ const uploadDicom = async (req, res) => {
                 if (attempt === 3) {
                     for (const instanceId of uploadedInstanceIds) {
                         try {
-                            await axios.delete(`${ORTHANC_URL}/instances/${instanceId}`, {
-                                auth: ORTHANC_AUTH
-                            });
+                            await axios.delete(`${orthanc_url}/instances/${instanceId}`, { auth: orthanc_auth });
                             console.log(`Instance ${instanceId} deleted from Orthanc due to database save failure`);
                         } catch (deleteErr) {
                             console.error(`Failed to delete instance ${instanceId} from Orthanc:`, deleteErr.message);
