@@ -14,11 +14,11 @@ function LandingPage() {
       <header className="header">
         <div className="logo">
           <img
-            src="/logo.avif"
-            alt="App-Orthane"
+            src="/logo.png"
+            alt="App-Orthanc"
             onError={(e) => (e.target.src = logoFallback)}
           />
-          <h2>App-Orthane</h2>
+          <h2>App-Orthanc</h2>
         </div>
         <nav className="navigation">
           <ul>
@@ -41,7 +41,7 @@ function LandingPage() {
           <div className="badge">#1 Plateforme Médicale</div>
           <h1>La solution complète pour votre gestion hospitalière</h1>
           <p>
-            App-Orthane est conçue pour simplifier la gestion des images médicales DICOM 
+            App-Orthane est conçue pour simplifier la gestion des images médicales DICOM
             et optimiser le flux de travail dans votre établissement de santé.
           </p>
           <Link to="/register" className="cta-button">Commencer</Link>
@@ -85,8 +85,8 @@ function LandingPage() {
           <h2>Où que vous soyez</h2>
           <h3>Nos Solutions Adaptées</h3>
           <p>
-            Notre plateforme s'adapte à tous les établissements de santé, 
-            quelle que soit leur taille ou leur spécialité. Nous offrons des solutions 
+            Notre plateforme s'adapte à tous les établissements de santé,
+            quelle que soit leur taille ou leur spécialité. Nous offrons des solutions
             personnalisées pour répondre à vos besoins spécifiques.
           </p>
           <a href="#contact" className="read-more">En savoir plus</a>
@@ -101,13 +101,13 @@ function LandingPage() {
         <div className="about-content">
           <div className="about-text">
             <p>
-              App-Orthane est une plateforme innovante dédiée à la gestion hospitalière moderne. 
-              Notre mission est de simplifier les processus complexes des établissements de santé, 
-              en offrant des outils puissants pour gérer les images médicales DICOM, optimiser les flux 
+              App-Orthane est une plateforme innovante dédiée à la gestion hospitalière moderne.
+              Notre mission est de simplifier les processus complexes des établissements de santé,
+              en offrant des outils puissants pour gérer les images médicales DICOM, optimiser les flux
               de travail et améliorer l’expérience des patients et des professionnels de santé.
             </p>
             <p>
-              Fondée par une équipe de passionnés de la santé et de la technologie, App-Orthane combine 
+              Fondée par une équipe de passionnés de la santé et de la technologie, App-Orthane combine
               expertise médicale et innovation numérique pour répondre aux besoins uniques de chaque établissement.
             </p>
           </div>

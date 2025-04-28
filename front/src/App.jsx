@@ -25,6 +25,8 @@ import MedicalRecord from './pages/Patient/MedicalRecord';
 import Appointments from './pages/Patient/Appointments';
 import BookAppointment from './pages/Patient/BookAppointment';
 import DownloadReport from './pages/Patient/DownloadReport';
+import ReportPage from './pages/Medecin/ReportPage';
+import Rendezvous from './pages/Medecin/Rendezvous';
 
 function App() {
   const location = useLocation();
@@ -111,6 +113,9 @@ function App() {
             <Route path="patients" element={<PatientsMedecin />} />
             <Route path="dossier-medical/:id" element={<EditPatient />} />
             <Route path="dicom" element={<Dicom />} />
+            <Route path="report" element={<ReportPage />} />
+            <Route path="rendezvous" element={<Rendezvous />} />
+
 
           </Route>
 

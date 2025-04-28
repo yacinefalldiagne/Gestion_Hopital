@@ -4,6 +4,7 @@ const Patient = require('../models/patient');
 const Medecin = require('../models/medecin');
 const { v4: uuidv4 } = require('uuid');
 
+
 const createRendezvous = async (req, res) => {
     try {
         const { dateRendezVous, heureDebut, heureFin, titre, description, statut, patient, medecin, color } = req.body;
@@ -417,10 +418,8 @@ const getRendezvousByPatient = async (req, res) => {
 
 const getRendezvousByMedecin = async (req, res) => {
     try {
-        if (!mongoose.Types.ObjectId.isValid(req.params.medecinId)) {
-            return res.status(400).json({ message: 'Format de l\'ID du médecin invalide' });
-        }
-        const medecinExists = await Medecin.findOne({ userId: req.params.medecinId });
+        const doctorId = req.user.user.id; // Use authenticated user ID from JWT
+        const medecinExists = await Medecin.findOne({ userId: doctorId });
         if (!medecinExists) {
             return res.status(404).json({ message: 'Médecin non trouvé' });
         }
