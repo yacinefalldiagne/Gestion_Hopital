@@ -8,7 +8,7 @@ const jwt = require("jsonwebtoken");
 const FormData = require("form-data"); // Ajout de la dépendance form-data
 const axios = require("axios");
 
-// Configure Multer for file uploads
+const ORTHANC_URL = 'http://localhost:8042';
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, "Uploads/dossiers/");
@@ -323,14 +323,14 @@ const getDicomInstance = async (req, res) => {
             return res.status(400).json({ message: "Instance ID is required" });
         }
 
-        const response = await axios.get(`http://localhost:8042/instances/${id}`);
+        const response = await axios.get(`${ORTHANC_URL}/instances/${id}`);
         const studyInstanceUID = response.data.MainDicomTags.StudyInstanceUID;
         res.json({
             id,
             mainDicomTags: response.data.MainDicomTags,
             previewUrl: `/instances/${id}/preview`,
             stoneViewerUrl: studyInstanceUID
-                ? `http://localhost:8042/stone-webviewer/index.html?study=${studyInstanceUID}`
+                ? `${ORTHANC_URL}/stone-webviewer/index.html?study=${studyInstanceUID}`
                 : null
         });
     } catch (error) {
@@ -357,7 +357,7 @@ const getDicomInstances = async (req, res) => {
         const instances = [];
         for (const instance of dicomInstances) {
             try {
-                const response = await axios.get(`http://localhost:8042/instances/${instance.instanceId}`);
+                const response = await axios.get(`${ORTHANC_URL}/instances/${instance.instanceId}`);
                 instances.push({
                     id: instance.instanceId,
                     studyInstanceUID: instance.studyInstanceUID,
@@ -366,7 +366,7 @@ const getDicomInstances = async (req, res) => {
                     mainDicomTags: response.data.MainDicomTags,
                     previewUrl: `/instances/${instance.instanceId}/preview`,
                     stoneViewerUrl: instance.studyInstanceUID
-                        ? `http://localhost:8042/stone-webviewer/index.html?study=${instance.studyInstanceUID}`
+                        ? `${ORTHANC_URL}/stone-webviewer/index.html?study=${instance.studyInstanceUID}`
                         : null,
                 });
             } catch (err) {
@@ -445,7 +445,7 @@ const uploadDicom = async (req, res) => {
                     continue;
                 }
 
-                const uploadResponse = await axios.post('http://localhost:8042/instances', formData, {
+                const uploadResponse = await axios.post('${ORTHANC_URL}/instances', formData, {
                     headers: { ...formData.getHeaders() },
                     responseType: 'text',
                 });
@@ -476,11 +476,11 @@ const uploadDicom = async (req, res) => {
                 // If instanceId is not in the response, query Orthanc using SOPInstanceUID
                 if (!instanceId || typeof instanceId !== 'string') {
                     console.warn(`ID d'instance non trouvé dans la réponse, recherche via SOPInstanceUID: ${sopInstanceUID}`);
-                    const instancesResponse = await axios.get('http://localhost:8042/instances');
+                    const instancesResponse = await axios.get('${ORTHANC_URL}/instances');
                     const instances = instancesResponse.data;
 
                     for (const id of instances) {
-                        const instanceDetails = await axios.get(`http://localhost:8042/instances/${id}`);
+                        const instanceDetails = await axios.get(`${ORTHANC_URL}/instances/${id}`);
                         const mainDicomTags = instanceDetails.data.MainDicomTags;
                         if (mainDicomTags.SOPInstanceUID === sopInstanceUID) {
                             instanceId = id;
@@ -497,7 +497,7 @@ const uploadDicom = async (req, res) => {
 
                 uploadedInstanceIds.push(instanceId);
 
-                const metadataResponse = await axios.get(`http://localhost:8042/instances/${instanceId}`);
+                const metadataResponse = await axios.get(`${ORTHANC_URL}/instances/${instanceId}`);
                 const mainDicomTags = metadataResponse.data.MainDicomTags;
 
                 // Use values from Orthanc if available, otherwise fall back to the file's values
@@ -529,7 +529,7 @@ const uploadDicom = async (req, res) => {
                 }
                 if (instanceId) {
                     try {
-                        await axios.delete(`http://localhost:8042/instances/${instanceId}`);
+                        await axios.delete(`${ORTHANC_URL}/instances/${instanceId}`);
                         console.log(`Instance ${instanceId} supprimée d'Orthanc suite à une erreur`);
                     } catch (deleteErr) {
                         console.error(`Échec de la suppression de l'instance ${instanceId} sur Orthanc:`, deleteErr.message);
@@ -563,7 +563,7 @@ const uploadDicom = async (req, res) => {
                 if (attempt === 3) {
                     for (const instanceId of uploadedInstanceIds) {
                         try {
-                            await axios.delete(`http://localhost:8042/instances/${instanceId}`);
+                            await axios.delete(`${ORTHANC_URL}/instances/${instanceId}`);
                             console.log(`Instance ${instanceId} deleted from Orthanc due to database save failure`);
                         } catch (deleteErr) {
                             console.error(`Failed to delete instance ${instanceId} from Orthanc:`, deleteErr.message);

@@ -1,19 +1,40 @@
 const mongoose = require('mongoose');
 
 const reportSchema = new mongoose.Schema({
-  patientId: {
+  patient: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Patient',
     required: true,
   },
-  doctorId: {
+  doctor: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'Medecin',
     required: true,
   },
-  content: {
+  consultationDate: {
+    type: Date,
+    required: true,
+    default: Date.now,
+  },
+  findings: {
     type: String,
     required: true,
+    trim: true,
+  },
+  diagnosis: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  recommendations: {
+    type: String,
+    trim: true,
+    default: '',
+  },
+  notes: {
+    type: String,
+    trim: true,
+    default: '',
   },
   createdAt: {
     type: Date,
@@ -25,6 +46,7 @@ const reportSchema = new mongoose.Schema({
   },
 });
 
+// Middleware to update `updatedAt` on save
 reportSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();

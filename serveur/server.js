@@ -25,7 +25,9 @@ app.use('/api/patients', require('./routes/patientRoute'));
 app.use('/api/medecins', require('./routes/medecinRoutes'));
 app.use('/api/dossiers', require('./routes/dossierRoute'));
 app.use('/api/rendezvous', require('./routes/rendezvousRoute'));
-// app.use('/api/files', require('./routes/fileRoute')); // Corrected path for file routes
+app.use('/api/reports', require('./routes/reportRoute'));
+app.use('/api/dashboard', require('./routes/dashboardRoute'));
+
 
 
 // Connexion à MongoDB et démarrage du serveur
