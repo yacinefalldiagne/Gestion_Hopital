@@ -128,27 +128,43 @@ function Medecins() {
         setModalError("");
 
         try {
+            // Préparer les données du médecin
             const medecinData = {
                 userId,
                 nom: newMedecin.nom,
                 prenom: newMedecin.prenom,
                 numeroTelephone: newMedecin.numeroTelephone,
                 email: newMedecin.email,
-                specialite: newMedecin.specialite,
-                horaires: new cv(newMedecin.horaires),
+                specialite: newMedecin.specialite, // Tableau de spécialités
+                horaires: newMedecin.horaires.map((horaire) => ({
+                    jour: horaire.jour,
+                    heureDebut: horaire.heureDebut,
+                    heureFin: horaire.heureFin,
+                })), // Copie propre des horaires
                 statut: newMedecin.statut,
             };
 
-            await axios.post("http://localhost:5000/api/medecins", medecinData, {
-                withCredentials: true,
-            });
+            console.log("Envoi des données à /api/medecins :", medecinData);
+
+            const response = await axios.post(
+                "http://localhost:5000/api/medecins",
+                medecinData,
+                { withCredentials: true }
+            );
+
+            console.log("Réponse de /api/medecins :", response.data);
+
             toast.success("Médecin ajouté avec succès !");
             setTimeout(() => {
                 setShowAddModal(false);
                 window.location.reload();
             }, 3000);
         } catch (err) {
-            const errorMessage = err.response?.data?.message || "Erreur lors de l'ajout du médecin";
+            console.error("Erreur lors de l'ajout du médecin :", err);
+            const errorMessage =
+                err.response?.data?.message ||
+                err.response?.data?.errors?.join(", ") ||
+                "Erreur lors de l'ajout du médecin";
             setModalError(errorMessage);
             toast.error(errorMessage);
         } finally {

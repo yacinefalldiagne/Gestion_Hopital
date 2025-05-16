@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import axios from "axios";
-import { FaEdit, FaFileMedical } from "react-icons/fa";
+import { FaEdit, FaFileMedical, FaEye } from "react-icons/fa";
 
 function Patients() {
     const [dossiers, setDossiers] = useState([]);
@@ -102,7 +102,14 @@ function Patients() {
                                 </div>
 
                                 {/* Bouton de modification */}
-                                <div className="mt-4 flex justify-end">
+                                <div className="mt-4 flex justify-end space-x-3">
+                                    <Link
+                                        to={`/medecin/patient/${dossier.patient?.userId}`}
+                                        className="flex items-center space-x-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                                    >
+                                        <FaEye />
+                                        <span>Consulter</span>
+                                    </Link>
                                     <Link
                                         to={`/medecin/dossier-medical/${dossier.patient?.userId}`}
                                         className="flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
