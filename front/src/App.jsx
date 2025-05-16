@@ -27,6 +27,11 @@ import BookAppointment from './pages/Patient/BookAppointment';
 import DownloadReport from './pages/Patient/DownloadReport';
 import ReportPage from './pages/Medecin/ReportPage';
 import Rendezvous from './pages/Medecin/Rendezvous';
+import PatientDetailsMedecin from './pages/Medecin/PatientDetails';
+import MedicalRecords from './pages/Medecin/MedicalRecords';
+import MedicalReports from './pages/Medecin/MedicalReport';
+import DicomImages from './pages/Medecin/DicomImages';
+
 
 function App() {
   const location = useLocation();
@@ -115,6 +120,11 @@ function App() {
             <Route path="dicom" element={<Dicom />} />
             <Route path="report" element={<ReportPage />} />
             <Route path="rendezvous" element={<Rendezvous />} />
+            <Route path="/medecin/patient/:patientId" element={<PatientDetailsMedecin />} />
+            <Route path="/medecin/patient/:patientId/reports" element={<MedicalReports />} />
+            <Route path="/medecin/patient/:patientId/record" element={<MedicalRecords />} />
+            <Route path="/medecin/patient/:patientId/dicom" element={<DicomImages />} />
+
 
 
           </Route>
