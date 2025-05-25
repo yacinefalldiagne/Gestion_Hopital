@@ -129,7 +129,7 @@ function LandingPage() {
           <div className="feature-card">
             <div className="feature-image-container">
               <img
-                src="/images/dicom-icon.png"
+                src="/images/dicom-icon.jpg"
                 alt="DICOM Icon"
                 className="feature-image"
               />
