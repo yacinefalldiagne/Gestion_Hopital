@@ -1,0 +1,323 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap");
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+.wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(90deg, #e2e2e2, #c9d6ff);
+}
+
+.container {
+    position: relative;
+    width: 850px;
+    height: 550px;
+    background: #fff;
+    border-radius: 30px;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    margin: 20px;
+}
+
+.formBox {
+    position: absolute;
+    right: 0;
+    width: 50%;
+    height: 100%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    color: #333;
+    text-align: center;
+    padding: 40px;
+    z-index: 1;
+    transition: right 0.6s ease-in-out 1.2s, visibility 0s 1s;
+}
+
+.containerActive .formBox {
+    right: 50%;
+}
+
+.formBoxLogin {
+    visibility: visible;
+}
+
+.formBoxRegister {
+    visibility: hidden;
+}
+
+.containerActive .formBoxLogin {
+    visibility: hidden;
+}
+
+.containerActive .formBoxRegister {
+    visibility: visible;
+}
+
+.form {
+    width: 100%;
+}
+
+.container h1 {
+    font-size: 36px;
+    margin: -10px 0;
+}
+
+.inputBox {
+    position: relative;
+    margin: 30px 0;
+}
+
+.inputBox input,
+.inputBox select {
+    width: 100%;
+    padding: 13px 50px 13px 20px;
+    background: #eee;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    font-size: 16px;
+    color: #333;
+    font-weight: 500;
+}
+
+.inputBox input::placeholder {
+    color: #888;
+    font-weight: 400;
+}
+
+.inputBox i {
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.forgotLink {
+    margin: -15px 0 15px;
+}
+
+.forgotLink a {
+    font-size: 14.5px;
+    color: #333;
+    text-decoration: none;
+}
+
+.btn {
+    width: 100%;
+    height: 48px;
+    background: #7494ec;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #fff;
+    font-weight: 600;
+}
+
+.btn:hover {
+    background: #5c7cfa;
+}
+
+.container p {
+    font-size: 14.5px;
+    margin: 15px 0;
+}
+
+.socialIcons {
+    display: flex;
+    justify-content: center;
+}
+
+.socialIcons a {
+    display: inline-flex;
+    padding: 10px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    font-size: 24px;
+    color: #333;
+    text-decoration: none;
+    margin: 0 8px;
+}
+
+.socialIcons a:hover {
+    border-color: #7494ec;
+}
+
+.toggleBox {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.toggleBox::before {
+    content: '';
+    position: absolute;
+    left: -250%;
+    width: 300%;
+    height: 100%;
+    background: #7494ec;
+    border-radius: 150px;
+    z-index: 2;
+    transition: left 1.8s ease-in-out;
+}
+
+.containerActive .toggleBox::before {
+    left: 50%;
+}
+
+.togglePanel {
+    position: absolute;
+    width: 50%;
+    height: 100%;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2;
+    transition: all 0.6s ease-in-out;
+}
+
+.togglePanelLeft {
+    left: 0;
+    transition-delay: 1.2s;
+}
+
+.containerActive .togglePanelLeft {
+    left: -50%;
+    transition-delay: 0.6s;
+}
+
+.togglePanelRight {
+    right: -50%;
+    transition-delay: 0.6s;
+}
+
+.containerActive .togglePanelRight {
+    right: 0;
+    transition-delay: 1.2s;
+}
+
+.togglePanel p {
+    margin-bottom: 20px;
+    font-size: 16px;
+}
+
+.togglePanel .btn {
+    width: 160px;
+    height: 46px;
+    background: transparent;
+    border: 2px solid #fff;
+    box-shadow: none;
+    font-size: 16px;
+    color: #fff;
+    font-weight: 600;
+}
+
+.togglePanel .btn:hover {
+    background: #fff;
+    color: #7494ec;
+}
+
+.error {
+    color: red;
+    font-size: 14px;
+    margin: 10px 0;
+}
+
+.backToHome {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: white;
+    font-size: 24px;
+    text-decoration: none;
+    transform: rotate(-15deg);
+}
+
+.backToHome:hover {
+    color: #e6f5fa;
+}
+
+/* Media queries */
+@media screen and (max-width: 650px) {
+    .container {
+        height: calc(100vh - 40px);
+    }
+
+    .formBox {
+        bottom: 0;
+        width: 100%;
+        height: 70%;
+    }
+
+    .containerActive .formBox {
+        right: 0;
+        bottom: 30%;
+    }
+
+    .toggleBox::before {
+        left: 0;
+        top: -270%;
+        width: 100%;
+        height: 300%;
+        border-radius: 20vw;
+    }
+
+    .containerActive .toggleBox::before {
+        left: 0;
+        top: 70%;
+    }
+
+    .togglePanel {
+        width: 100%;
+        height: 30%;
+    }
+
+    .togglePanelLeft {
+        top: 0;
+    }
+
+    .containerActive .togglePanelLeft {
+        top: -30%;
+        left: 0;
+    }
+
+    .togglePanelRight {
+        right: 0;
+        bottom: -30%;
+    }
+
+    .containerActive .togglePanelRight {
+        bottom: 0;
+    }
+}
+
+@media screen and (max-width: 400px) {
+    .formBox {
+        padding: 20px;
+    }
+
+    .togglePanel h1 {
+        font-size: 30px;
+    }
+
+    .togglePanel .btn {
+        width: 140px;
+        height: 42px;
+        font-size: 14px;
+    }
+
+    .backToHome {
+        font-size: 20px;
+    }
+}

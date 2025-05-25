@@ -1,54 +1,69 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState } from 'react';
+import { FaHome, FaCalendarAlt, FaFileAlt, FaSignOutAlt } from 'react-icons/fa';
+import { Link, useNavigate } from 'react-router-dom';
+import PatientDashboard from './PatientDashboard';
+import Appointments from './BookAppointment';
+import DownloadReport from './DownloadReport';
 
 const PatientPage = () => {
-  const { patientId } = useParams();
-  const [patient, setPatient] = useState(null);
-  const [error, setError] = useState(null);
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchPatient = async () => {
-      try {
-        setError(null);
-        const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('Vous devez être connecté pour accéder aux détails du patient.');
-        }
-        const res = await axios.get(`http://localhost:5000/api/patients/${patientId}`, {
-          headers: { 'x-auth-token': token },
-        });
-        setPatient(res.data);
-      } catch (error) {
-        const errorMessage = error.response?.data?.message || error.message || 'Erreur lors de la récupération du patient';
-        console.error('Erreur:', errorMessage);
-        setError(errorMessage);
-      }
-    };
-    fetchPatient();
-  }, [patientId]);
-
-  if (!patient) {
-    return <div className="text-center mt-10">Chargement...</div>;
-  }
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    navigate('/login');
+  };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[80vh] p-6 bg-white rounded-xl shadow-md mx-10">
-      <h2 className="text-2xl font-semibold mb-6">Détails du Patient</h2>
-      {error && <p className="text-red-600 mb-4 text-center">{error}</p>}
-      <div className="w-full max-w-2xl bg-gray-100 p-4 rounded-lg">
-        <p><strong>Nom :</strong> {patient.name}</p>
-        <p><strong>Date de naissance :</strong> {new Date(patient.dateOfBirth).toLocaleDateString()}</p>
-        <p><strong>Genre :</strong> {patient.gender}</p>
-        <p><strong>Créé le :</strong> {new Date(patient.createdAt).toLocaleString()}</p>
-      </div>
-      <div className="mt-6">
-        <Link
-          to={`/medecin/patient/${patientId}/reports`}
-          className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition"
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Sidebar */}
+      <div className="w-64 bg-white shadow-lg p-6 flex flex-col justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-800 mb-8">Espace Patient</h1>
+          <nav className="space-y-4">
+            <button
+              onClick={() => setActiveSection('dashboard')}
+              className={`flex items-center space-x-3 w-full p-3 rounded-lg transition-colors ${
+                activeSection === 'dashboard' ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <FaHome className="text-xl" />
+              <span>Tableau de bord</span>
+            </button>
+            <button
+              onClick={() => setActiveSection('appointments')}
+              className={`flex items-center space-x-3 w-full p-3 rounded-lg transition-colors ${
+                activeSection === 'appointments' ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <FaCalendarAlt className="text-xl" />
+              <span>Rendez-vous</span>
+            </button>
+            <button
+              onClick={() => setActiveSection('reports')}
+              className={`flex items-center space-x-3 w-full p-3 rounded-lg transition-colors ${
+                activeSection === 'reports' ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <FaFileAlt className="text-xl" />
+              <span>Compte rendu</span>
+            </button>
+          </nav>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="flex items-center space-x-3 w-full p-3 rounded-lg text-red-600 hover:bg-red-100 transition-colors"
         >
-          Voir les Rapports
-        </Link>
+          <FaSignOutAlt className="text-xl" />
+          <span>Déconnexion</span>
+        </button>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 p-8">
+        {activeSection === 'dashboard' && <PatientDashboard />}
+        {activeSection === 'bookappointment' && <BookAppointment />}
+        {activeSection === 'reports' && <DownloadReport />}
       </div>
     </div>
   );

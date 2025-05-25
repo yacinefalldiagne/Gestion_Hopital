@@ -9,19 +9,15 @@ const DownloadReport = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fonction pour récupérer les rapports
   const fetchReports = async () => {
     try {
       setLoading(true);
-      console.log('Fetching reports for userId:', user._id); // Débogage
       const response = await axios.get(`http://localhost:5000/api/reports/user/${user._id}`, {
         withCredentials: true,
       });
-      console.log('Reports response:', response.data); // Débogage
       setReports(response.data);
       setError(null);
     } catch (err) {
-      console.error('Erreur lors de fetchReports:', err);
       const errorMessage = err.response?.data?.message || 'Erreur lors de la récupération des rapports';
       setError(errorMessage);
     } finally {
@@ -29,43 +25,36 @@ const DownloadReport = () => {
     }
   };
 
-  // Appeler fetchReports une fois l'authentification terminée
   useEffect(() => {
-    if (authLoading) {
-      return;
-    }
+    if (authLoading) return;
     if (!user || !user._id || user.role !== 'patient') {
       setLoading(false);
       setError('Accès réservé aux patients. Veuillez vous connecter.');
-      console.warn('Utilisateur invalide ou non-patient:', user); // Débogage
       return;
     }
     fetchReports();
   }, [user, authLoading]);
 
-  // Fonction pour télécharger un rapport en PDF
   const handleDownloadPDF = (report) => {
     const doc = new jsPDF();
     const margin = 15;
     let y = 20;
 
-    // En-tête
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(20);
-    doc.setTextColor(0, 123, 255); // Couleur #007bff
+    doc.setTextColor(0, 123, 255);
     doc.text('Compte Rendu Médical', 105, y, { align: 'center' });
     y += 10;
     doc.setLineWidth(0.5);
     doc.setDrawColor(0, 123, 255);
-    doc.line(margin, y, 210 - margin, y); // Ligne sous l'en-tête
+    doc.line(margin, y, 210 - margin, y);
     y += 15;
 
-    // Informations du patient
     doc.setFontSize(12);
     doc.setTextColor(0, 123, 255);
     doc.text('Informations du Patient', margin, y);
     doc.setLineWidth(0.2);
-    doc.line(margin, y + 1, margin + 50, y + 1); // Soulignement
+    doc.line(margin, y + 1, margin + 50, y + 1);
     y += 10;
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0);
@@ -84,7 +73,6 @@ const DownloadReport = () => {
     doc.text(`Téléphone: ${report.patient.numeroTelephone || 'Non spécifié'}`, margin, y);
     y += 15;
 
-    // Médecin responsable
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 123, 255);
     doc.text('Médecin Responsable', margin, y);
@@ -97,7 +85,6 @@ const DownloadReport = () => {
     doc.text(`Spécialité: ${report.doctor.specialite}`, margin, y);
     y += 15;
 
-    // Antécédents médicaux
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 123, 255);
     doc.text('Antécédents Médicaux', margin, y);
@@ -110,7 +97,6 @@ const DownloadReport = () => {
     doc.text(antecedentLines, margin, y);
     y += antecedentLines.length * 7 + 10;
 
-    // Histoire de la maladie
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 123, 255);
     doc.text('Histoire de la Maladie', margin, y);
@@ -123,7 +109,6 @@ const DownloadReport = () => {
     doc.text(findingsLines, margin, y);
     y += findingsLines.length * 7 + 10;
 
-    // Diagnostic
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 123, 255);
     doc.text('Diagnostic', margin, y);
@@ -136,7 +121,6 @@ const DownloadReport = () => {
     doc.text(diagnosisLines, margin, y);
     y += diagnosisLines.length * 7 + 10;
 
-    // Examen clinique
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 123, 255);
     doc.text('Examen Clinique', margin, y);
@@ -149,7 +133,6 @@ const DownloadReport = () => {
     doc.text(notesLines, margin, y);
     y += notesLines.length * 7 + 10;
 
-    // Bilan biologique et recommandations
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 123, 255);
     doc.text('Bilan Biologique et Recommandations', margin, y);
@@ -162,7 +145,6 @@ const DownloadReport = () => {
     doc.text(recommendationsLines, margin, y);
     y += recommendationsLines.length * 7 + 10;
 
-    // Secrétariat médical
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 123, 255);
     doc.text('Secrétariat Médical', margin, y);
@@ -173,10 +155,9 @@ const DownloadReport = () => {
     doc.text('Tél./Fax: 77 878 47 77', margin, y);
     y += 15;
 
-    // Signature
     doc.setLineWidth(0.2);
     doc.setDrawColor(200);
-    doc.line(margin, y, 210 - margin, y); // Ligne en pointillés
+    doc.line(margin, y, 210 - margin, y);
     y += 10;
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(0);
@@ -184,11 +165,9 @@ const DownloadReport = () => {
     y += 7;
     doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 210 - margin - 60, y);
 
-    // Télécharger le PDF
     doc.save(`rapport_${report._id}.pdf`);
   };
 
-  // Afficher un écran de chargement pendant l'authentification
   if (authLoading) {
     return (
       <div className="p-6">
@@ -197,7 +176,6 @@ const DownloadReport = () => {
     );
   }
 
-  // Vérifier si l'utilisateur est un patient
   if (!user || !user._id || user.role !== 'patient') {
     return (
       <div className="p-6">
@@ -209,46 +187,37 @@ const DownloadReport = () => {
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Compte-rendu</h1>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold text-gray-800">Mes comptes rendus</h1>
       {loading && <p className="text-center text-gray-600">Chargement...</p>}
       {error && <p className="text-center text-red-600">{error}</p>}
       {!loading && !error && (
-        <div className="overflow-x-auto">
+        <div className="space-y-4">
           {reports.length > 0 ? (
-            <table className="min-w-full bg-white border border-gray-200">
-              <thead>
-                <tr className="bg-gray-100">
-                  <th className="py-2 px-4 border-b text-left">Date</th>
-                  <th className="py-2 px-4 border-b text-left">Médecin</th>
-                  <th className="py-2 px-4 border-b text-left">Contenu</th>
-                  <th className="py-2 px-4 border-b text-left">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reports.map((report) => (
-                  <tr key={report._id} className="hover:bg-gray-50">
-                    <td className="py-2 px-4 border-b">
-                      {new Date(report.createdAt).toLocaleDateString('fr-FR')}
-                    </td>
-                    <td className="py-2 px-4 border-b">
-                      {report.doctor?.name || 'Médecin inconnu'}
-                    </td>
-                    <td className="py-2 px-4 border-b">
-                      {report.diagnosis || report.findings || report.recommendations || report.notes || 'Non spécifié'}
-                    </td>
-                    <td className="py-2 px-4 border-b">
-                      <button
-                        onClick={() => handleDownloadPDF(report)}
-                        className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600"
-                      >
-                        Télécharger PDF
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            reports.map((report) => (
+              <div
+                key={report._id}
+                className="bg-white p-6 rounded-lg shadow-md flex items-center justify-between hover:shadow-lg transition-shadow"
+              >
+                <div>
+                  <p className="text-lg font-semibold text-gray-800">
+                    {new Date(report.createdAt).toLocaleDateString('fr-FR')}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Médecin : {report.doctor?.name || 'Médecin inconnu'}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Résumé : {report.diagnosis || report.findings || report.recommendations || report.notes || 'Non spécifié'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleDownloadPDF(report)}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+                >
+                  Télécharger PDF
+                </button>
+              </div>
+            ))
           ) : (
             <p className="text-center text-gray-600">Aucun compte-rendu disponible.</p>
           )}

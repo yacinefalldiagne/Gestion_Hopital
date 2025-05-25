@@ -38,13 +38,30 @@ const registerUser = async (req, res) => {
         await user.save();
         console.log('User saved:', user); // Debug saved user
 
-        res.status(201).json({ userId: user.id, role: user.role }); // Return userId without token
+        // Générer un token JWT
+        const payload = {
+            user: {
+                id: user.id,
+                role: user.role,
+            },
+        };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        // Définir le cookie authToken
+        res.cookie('authToken', token, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            maxAge: 3600000,
+            sameSite: 'strict'
+        });
+
+        // Envoyer la réponse
+        res.status(201).json({ userId: user.id, role: user.role });
     } catch (error) {
         console.error('Erreur dans registerUser:', error.message, error.stack);
         res.status(500).json({ message: 'Erreur serveur', error: error.message });
     }
 };
-
 // Fonction pour la connexion
 const loginUser = async (req, res) => {
     const { email, password } = req.body;

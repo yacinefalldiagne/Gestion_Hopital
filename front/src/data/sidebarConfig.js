@@ -17,8 +17,7 @@ export const SIDEBAR_LINKS = {
     ],
     patient: [
         { id: 1, name: "Tableau de bord", path: "/patient", icon: LuBox },
-        { id: 3, name: "Prendre rendez-vous", path: "/patient/book-appointment", icon: LuCalendar },
-        { id: 4, name: "Mes rendez-vous", path: "/patient/appointments", icon: LuHistory },
-        { id: 5, name: "Compte-rendu", path: "/patient/download-report", icon: LuDownload },
+        { id: 3, name: " rendez-vous", path: "/patient/book-appointment", icon: LuCalendar },
+        { id: 4, name: "Compte-rendu", path: "/patient/download-report", icon: LuDownload },
     ],
 };
