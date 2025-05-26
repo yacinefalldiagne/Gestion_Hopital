@@ -32,14 +32,11 @@ function PatientDashboard() {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem('token');
         const response = await fetch(
           `http://localhost:5000/api/dashboard/patient?date=${selectedDate.toISOString()}&month=${month}&year=${year}`,
           {
             method: 'GET',
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+            credentials: 'include', // Inclut les cookies (authToken)
           }
         );
         if (!response.ok) {
@@ -144,10 +141,7 @@ function PatientDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <h1 className="text-3xl font-bold text-gray-800">Tableau de bord</h1>
-
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="flex flex-col items-center p-6 bg-green-50 rounded-lg shadow-md">
           <FaCalendarAlt className="text-3xl text-green-600 mb-2" />
@@ -170,10 +164,7 @@ function PatientDashboard() {
           <p className="text-gray-600">Documents</p>
         </div>
       </div>
-
-      {/* Main Content */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left Section: Doctors */}
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold text-gray-800 mb-4">Mes médecins</h2>
           <div className="space-y-4">
@@ -201,10 +192,7 @@ function PatientDashboard() {
             </Link>
           </div>
         </div>
-
-        {/* Right Section: Calendar and Appointments */}
         <div className="md:col-span-2 space-y-6">
-          {/* Calendar */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <div className="flex justify-between items-center mb-4">
               <div className="flex items-center space-x-2">
@@ -232,8 +220,6 @@ function PatientDashboard() {
             </div>
             {view === 'Month' && renderMonthCalendar()}
           </div>
-
-          {/* Appointments */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Rendez-vous à venir</h2>
             <div className="flex justify-between items-center mb-4">

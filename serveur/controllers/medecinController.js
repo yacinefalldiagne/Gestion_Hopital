@@ -14,13 +14,12 @@ const getMedecins = async (req, res) => {
         const userId = decoded.user.id;
         const user = await User.findById(userId);
 
-        // Vérification si l'utilisateur existe
         if (!user) {
             return res.status(404).json({ message: 'Utilisateur non trouvé' });
         }
 
-        // Vérification du rôle de l'utilisateur
-        if (user.role !== 'secretaire' && user.role !== 'medecin') {
+        // Autoriser les rôles secretaire, medecin et patient
+        if (user.role !== 'secretaire' && user.role !== 'medecin' && user.role !== 'patient') {
             return res.status(403).json({ message: 'Accès interdit. Rôle insuffisant.' });
         }
 

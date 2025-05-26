@@ -72,15 +72,17 @@ const Appointments = () => {
   };
 
   useEffect(() => {
-    if (authLoading) return;
-    if (!user || !user._id || user.role !== 'patient') {
-      setLoading(false);
-      setError('Accès réservé aux patients. Veuillez vous connecter.');
-      return;
-    }
-    fetchAppointments();
-    fetchDoctors();
-  }, [user, authLoading]);
+  console.log('AuthContext user:', user, 'authLoading:', authLoading);
+  if (authLoading) return;
+  if (!user || !user._id || user.role !== 'patient') {
+    setLoading(false);
+    setError('Accès réservé aux patients. Veuillez vous connecter avec un compte patient.');
+    return;
+  }
+  console.log('Fetching appointments for user ID:', user._id);
+  fetchAppointments();
+  fetchDoctors();
+}, [user, authLoading]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
