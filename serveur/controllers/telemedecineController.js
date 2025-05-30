@@ -10,13 +10,23 @@ mongooseConnection.once('open', () => {
   gfs = new GridFSBucket(mongooseConnection.db, { bucketName: 'uploads' });
 });
 
+const getPatients = async (req, res) => {
+  try {
+    const patients = await User.find({ role: 'patient' }).select('nom prenom _id');
+    res.json(patients);
+  } catch (error) {
+    console.error('Erreur dans getPatients:', error.message);
+    res.status(500).json({ message: 'Erreur serveur.' });
+  }
+};
+
 const sendConsultation = async (req, res) => {
   try {
     if (!gfs) {
       return res.status(500).json({ message: 'GridFS non initialisé.' });
     }
-    const { patientData, recipientDoctorId } = req.body;
-    const files = req.files || [];
+    const { patientId, recipientDoctorId } = req.body;
+    const files = JSON.parse(req.body.files || '[]');
 
     // Vérifier que le destinataire est un médecin
     const recipientDoctor = await User.findById(recipientDoctorId);
@@ -24,22 +34,30 @@ const sendConsultation = async (req, res) => {
       return res.status(400).json({ message: 'Destinataire invalide.' });
     }
 
-    // Enregistrer les fichiers dans GridFS
-    const fileUrls = await Promise.all(files.map(async (file) => {
-      const uploadStream = gfs.openUploadStream(file.originalname);
-      uploadStream.end(file.buffer);
-      return {
-        name: file.originalname,
-        url: `/api/files/${uploadStream.id}`,
-      };
-    }));
+    // Vérifier que le patient existe
+    const patient = await User.findById(patientId);
+    if (!patient || patient.role !== 'patient') {
+      return res.status(400).json({ message: 'Patient invalide.' });
+    }
+
+    // Récupérer le dossier médical du patient
+    const dossier = await mongoose.model('Dossier').findOne({ patientId });
+    const patientData = {
+      nom: patient.nom,
+      prenom: patient.prenom,
+      age: patient.dateNaissance
+        ? Math.floor((new Date() - new Date(patient.dateNaissance)) / (365.25 * 24 * 60 * 60 * 1000))
+        : null,
+      allergies: patient.allergies || [],
+      antecedent: patient.antecedent || '',
+    };
 
     // Créer une nouvelle consultation
     const consultation = new Consultation({
       senderDoctorId: req.user.user.id,
       recipientDoctorId,
-      patientData: JSON.parse(patientData),
-      files: fileUrls,
+      patientData,
+      files,
     });
 
     await consultation.save();
@@ -70,4 +88,4 @@ const getMessages = async (req, res) => {
   }
 };
 
-module.exports = { sendConsultation, getConsultations, getMessages };
+module.exports = { getPatients, sendConsultation, getConsultations, getMessages };

@@ -9,7 +9,22 @@ function CompteRendu() {
   useEffect(() => {
     const fetchConsultations = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/reports');
+        // Configurer axios pour inclure le token dans les en-têtes
+        const token = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('authToken='))
+          ?.split('=')[1];
+
+        if (!token) {
+          throw new Error('Utilisateur non authentifié');
+        }
+
+        const response = await axios.get('http://localhost:5000/api/reports/doctor', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
         setConsultations(response.data);
         setLoading(false);
       } catch (err) {
@@ -31,9 +46,9 @@ function CompteRendu() {
             <svg className="h-8 w-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
-            <h1 className="text-2xl font-bold">Historique des comptes rendus</h1>
+            <h1 className="text-2xl font-bold">Comptes rendus de tous les patients</h1>
           </div>
-          <p className="text-sm font-medium">Consultez les comptes rendus passés</p>
+          <p className="text-sm font-medium">Consultez tous vos comptes rendus</p>
         </div>
 
         {/* Corps */}
@@ -55,24 +70,24 @@ function CompteRendu() {
                 >
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-semibold text-gray-800">
-                      Consultation du {new Date(consultation.createdAt).toLocaleDateString()}
+                      Consultation du {new Date(consultation.consultationDate).toLocaleDateString()}
                     </h2>
                     <span className="text-sm text-blue-600 font-medium">
-                      {consultation.doctor?.name || 'Médecin inconnu'}
+                      Patient: {consultation.patient?.name || 'Patient inconnu'}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium text-gray-700">Patient :</p>
-                      <p className="text-gray-600">{consultation.patientData?.name || 'N/A'}</p>
+                      <p className="text-gray-600">{consultation.patient?.name || 'N/A'}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-700">Diagnostic :</p>
-                      <p className="text-gray-600">{consultation.patientData?.diagnosis || 'Non spécifié'}</p>
+                      <p className="text-gray-600">{consultation.diagnosis || 'Non spécifié'}</p>
                     </div>
                     <div className="col-span-1 md:col-span-2">
                       <p className="text-sm font-medium text-gray-700">Notes :</p>
-                      <p className="text-gray-600">{consultation.patientData?.notes || 'Aucune'}</p>
+                      <p className="text-gray-600">{consultation.notes || 'Aucune'}</p>
                     </div>
                   </div>
                   <div className="mt-4 flex justify-end">

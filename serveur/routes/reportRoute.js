@@ -7,6 +7,7 @@ const {
   getReportById,
   updateReport,
   deleteReport,
+  getReportsByDoctor
 
 } = require('../controllers/reportController');
 
@@ -16,7 +17,7 @@ router.get('/:id', verifyToken, getReportById);
 router.get('/user/:userId', verifyToken, getReportsByPatient);
 router.put('/:id', verifyToken, updateReport);
 router.delete('/:id', verifyToken, deleteReport);
-
+router.get('/doctor', verifyToken, getReportsByDoctor); // Nouvelle route
 
 
 module.exports = router;
