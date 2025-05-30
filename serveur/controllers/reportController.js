@@ -5,7 +5,7 @@ const User = require('../models/user');
 const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
 
-// Authentication middleware to ensure only doctors can create reports
+// Authentication middleware to ensure only doctors can access certain routes
 const authMiddleware = (req, res, next) => {
     const token = req.cookies.authToken;
     if (!token) {
@@ -46,7 +46,7 @@ const createReport = async (req, res) => {
         }
 
         const report = new Report({
-            patient: patient._id, // Utiliser l'_id du Patient
+            patient: patient._id,
             doctor: doctor._id,
             consultationDate: consultationDate ? new Date(consultationDate) : Date.now(),
             findings,
@@ -92,21 +92,75 @@ const createReport = async (req, res) => {
 // Get all reports for a patient
 const getReportsByPatient = async (req, res) => {
     try {
-        const { userId } = req.params; // Renamed from patientId to userId for clarity
+        const { userId } = req.params;
 
-        // Validate that the provided userId is a valid ObjectId
         if (!mongoose.Types.ObjectId.isValid(userId)) {
             return res.status(400).json({ message: 'ID de l\'utilisateur invalide' });
         }
 
-        // Find the Patient document where userId matches the provided userId
         const patient = await Patient.findOne({ userId: userId });
         if (!patient) {
             return res.status(404).json({ message: 'Patient non trouvé' });
         }
 
-        // Find all reports where the patient field matches the Patient._id
         const reports = await Report.find({ patient: patient._id })
+            .populate({
+                path: 'patient',
+                populate: {
+                    path: 'userId',
+                    select: 'prenom nom email',
+                },
+            })
+            .populate({
+                path: 'doctor',
+                populate: {
+                    path: 'userId',
+                    select: 'prenom nom email',
+                },
+            })
+            .lean();
+
+        const formattedReports = reports.map((report) => ({
+            _id: report._id,
+            patient: {
+                id: report.patient._id,
+                name: `${report.patient.userId.prenom} ${report.patient.userId.nom}`,
+                email: report.patient.userId.email,
+            },
+            doctor: {
+                id: report.doctor._id,
+                name: `${report.doctor.userId.prenom} ${report.doctor.userId.nom}`,
+                specialite: report.doctor.specialite.join(', '),
+            },
+            consultationDate: report.consultationDate,
+            findings: report.findings,
+            diagnosis: report.diagnosis,
+            recommendations: report.recommendations,
+            notes: report.notes,
+            createdAt: report.createdAt,
+            updatedAt: report.updatedAt,
+        }));
+
+        res.json(formattedReports);
+    } catch (error) {
+        console.error('Erreur dans getReportsByPatient:', error.message, error.stack);
+        res.status(500).json({ message: 'Erreur serveur' });
+    }
+};
+
+// Get all reports for a doctor
+const getReportsByDoctor = async (req, res) => {
+    try {
+        const doctorId = req.user.user.id; // Get doctor ID from authenticated user
+
+        // Find the Medecin document where userId matches the authenticated user
+        const doctor = await Medecin.findOne({ userId: doctorId });
+        if (!doctor) {
+            return res.status(404).json({ message: 'Médecin non trouvé' });
+        }
+
+        // Find all reports where the doctor field matches the Medecin._id
+        const reports = await Report.find({ doctor: doctor._id })
             .populate({
                 path: 'patient',
                 populate: {
@@ -147,7 +201,7 @@ const getReportsByPatient = async (req, res) => {
 
         res.json(formattedReports);
     } catch (error) {
-        console.error('Erreur dans getReportsByPatient:', error.message, error.stack);
+        console.error('Erreur dans getReportsByDoctor:', error.message, error.stack);
         res.status(500).json({ message: 'Erreur serveur' });
     }
 };
@@ -225,7 +279,6 @@ const updateReport = async (req, res) => {
             return res.status(404).json({ message: 'Rapport non trouvé' });
         }
 
-        // Only the doctor who created the report can update it
         if (report.doctor.toString() !== (await Medecin.findOne({ userId: req.user.user.id }))._id.toString()) {
             return res.status(403).json({ message: 'Accès interdit. Seuls les médecins auteurs peuvent modifier ce rapport.' });
         }
@@ -262,7 +315,6 @@ const deleteReport = async (req, res) => {
             return res.status(404).json({ message: 'Rapport non trouvé' });
         }
 
-        // Only the doctor who created the report can delete it
         if (report.doctor.toString() !== (await Medecin.findOne({ userId: req.user.user.id }))._id.toString()) {
             return res.status(403).json({ message: 'Accès interdit. Seuls les médecins auteurs peuvent supprimer ce rapport.' });
         }
@@ -278,6 +330,7 @@ const deleteReport = async (req, res) => {
 module.exports = {
     createReport,
     getReportsByPatient,
+    getReportsByDoctor,
     getReportById,
     updateReport,
     deleteReport,

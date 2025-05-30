@@ -37,6 +37,7 @@ import MedicalReports from "./pages/Medecin/MedicalReport";
 import DicomImages from "./pages/Medecin/DicomImages";
 import TeleMedecine from "./pages/Medecin/TeleMedecine";
 import CompteRendu from "./pages/Medecin/CompteRendu";
+import Unauthorized from "./components/Unauthorized";
 
 function App() {
   const { theme } = useContext(ThemeContext);
@@ -79,9 +80,8 @@ function App() {
   const AuthFormContainer = () => (
     <div className={styles.wrapper}>
       <div
-        className={`${styles.container} ${
-          isActive ? styles.containerActive : ""
-        }`}
+        className={`${styles.container} ${isActive ? styles.containerActive : ""
+          }`}
       >
         <div className={`${styles.formBox} ${styles.formBoxLogin}`}>
           <LoginForm />
@@ -117,15 +117,15 @@ function App() {
 
   return (
     <div
-      className={`min-h-screen ${
-        theme === "dark" ? "dark bg-gray-900" : "bg-gray-100"
-      } transition-all duration-300`}
+      className={`min-h-screen ${theme === "dark" ? "dark bg-gray-900" : "bg-gray-100"
+        } transition-all duration-300`}
     >
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/login" element={<AuthFormContainer />} />
         <Route path="/register" element={<AuthFormContainer />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
 
         <Route element={<Layout userRole={userRole} />}>
           <Route
