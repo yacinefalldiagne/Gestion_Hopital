@@ -5,7 +5,7 @@ const User = require("../models/user");
 const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 
-// Authentication middleware to ensure only doctors can create reports
+// Authentication middleware to ensure only doctors can access certain routes
 const authMiddleware = (req, res, next) => {
   const token = req.cookies.authToken;
   if (!token) {
@@ -169,6 +169,68 @@ const getReportsByPatient = async (req, res) => {
   } catch (error) {
     console.error(
       "Erreur dans getReportsByPatient:",
+      error.message,
+      error.stack
+    );
+    res.status(500).json({ message: "Erreur serveur" });
+  }
+};
+
+// Get all reports for a doctor
+const getReportsByDoctor = async (req, res) => {
+  try {
+    const doctorId = req.user.user.id; // Get doctor ID from authenticated user
+
+    // Find the Medecin document where userId matches the authenticated user
+    const doctor = await Medecin.findOne({ userId: doctorId });
+    if (!doctor) {
+      return res.status(404).json({ message: "Médecin non trouvé" });
+    }
+
+    // Find all reports where the doctor field matches the Medecin._id
+    const reports = await Report.find({ doctor: doctor._id })
+      .populate({
+        path: "patient",
+        populate: {
+          path: "userId",
+          select: "prenom nom email",
+        },
+      })
+      .populate({
+        path: "doctor",
+        populate: {
+          path: "userId",
+          select: "prenom nom email",
+        },
+      })
+      .lean();
+
+    // Format the reports for the response
+    const formattedReports = reports.map((report) => ({
+      _id: report._id,
+      patient: {
+        id: report.patient._id,
+        name: `${report.patient.userId.prenom} ${report.patient.userId.nom}`,
+        email: report.patient.userId.email,
+      },
+      doctor: {
+        id: report.doctor._id,
+        name: `${report.doctor.userId.prenom} ${report.doctor.userId.nom}`,
+        specialite: report.doctor.specialite.join(", "),
+      },
+      consultationDate: report.consultationDate,
+      findings: report.findings,
+      diagnosis: report.diagnosis,
+      recommendations: report.recommendations,
+      notes: report.notes,
+      createdAt: report.createdAt,
+      updatedAt: report.updatedAt,
+    }));
+
+    res.json(formattedReports);
+  } catch (error) {
+    console.error(
+      "Erreur dans getReportsByDoctor:",
       error.message,
       error.stack
     );
@@ -390,6 +452,25 @@ const getReportsByUser = async (req, res) => {
     });
   }
 };
+// Add this function to your reportController.js
+
+const getAllReports = async (req, res) => {
+  try {
+    // Get all reports and populate doctor and patient information
+    const reports = await Report.find()
+      .populate("doctor", "name email") // Populate doctor info
+      .populate("patient", "name email") // Populate patient info if you have a patient reference
+      .sort({ consultationDate: -1 }); // Sort by most recent first
+
+    res.status(200).json(reports);
+  } catch (error) {
+    console.error("Error fetching all reports:", error);
+    res.status(500).json({
+      message: "Erreur lors de la récupération des comptes rendus",
+      error: error.message,
+    });
+  }
+};
 
 // Delete a report
 const deleteReport = async (req, res) => {
@@ -430,5 +511,6 @@ module.exports = {
   getReportById,
   updateReport,
   deleteReport,
-  getReportsByUser, // ✅ ajouté ici
+  getAllReports,
+  getReportsByUser,
 };

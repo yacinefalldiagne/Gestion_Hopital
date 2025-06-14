@@ -1,4 +1,3 @@
-// --- routes/reportRoute.js ---
 const express = require("express");
 const router = express.Router();
 const { verifyToken } = require("../middlewares/authMiddleware");
@@ -8,30 +7,25 @@ const {
   getReportById,
   updateReport,
   deleteReport,
-  getReportsByUser
-} = require("../controllers/reportController");
+  getAllReports,
+  getReportsByUser, // Ajouter cette importation
+} = require('../controllers/reportController');
 
-// Debug middleware to log all requests
-router.use((req, res, next) => {
-  console.log(`Report Route: ${req.method} ${req.originalUrl}`);
-  console.log('Route params:', req.params);
-  next();
-});
+// Route to get all reports
+router.get('/', verifyToken, getAllReports);
 
-// ✅ Créer un rapport
-router.post("/", verifyToken, createReport);
+// Route to create a new report
+router.post('/', verifyToken, createReport);
 
-// ✅ Routes spécifiques (mettre avant les génériques)
-router.get("/user/:userId", verifyToken, (req, res, next) => {
-  console.log('Route /user/:userId called with userId:', req.params.userId);
-  getReportsByUser(req, res, next);
-});
+// Route to get reports by user (doctor) - Utiliser getReportsByUser
+router.get('/user/:userId', verifyToken, getReportsByUser);
 
-router.get("/patient/:userId", verifyToken, getReportsByPatient);
+// Route to get reports by patient
+router.get('/patient/:userId', verifyToken, getReportsByPatient);
 
-// ✅ Routes génériques par ID (doivent venir après les spécifiques)
-router.get("/:reportId", verifyToken, getReportById);
-router.put("/:reportId", verifyToken, updateReport);
-router.delete("/:reportId", verifyToken, deleteReport);
+// Other routes
+router.get('/:id', verifyToken, getReportById);
+router.put('/:id', verifyToken, updateReport);
+router.delete('/:id', verifyToken, deleteReport);
 
 module.exports = router;

@@ -10,20 +10,22 @@ mongooseConnection.once('open', () => {
   gfs = new GridFSBucket(mongooseConnection.db, { bucketName: 'uploads' });
 });
 
+const getPatients = async (req, res) => {
+  try {
+    const patients = await User.find({ role: 'patient' }).select('nom prenom _id');
+    res.json(patients);
+  } catch (error) {
+    console.error('Erreur dans getPatients:', error.message);
+    res.status(500).json({ message: 'Erreur serveur.' });
+  }
+};
+
 const sendConsultation = async (req, res) => {
   try {
     // Vérification GridFS
     if (!gfs) {
       return res.status(500).json({ message: 'Système de fichiers non initialisé.' });
     }
-
-    // Extraction ID utilisateur (compatible avec différentes structures d'auth)
-    const userId = req.user?.user?.id || req.user?.id || req.user?._id;
-    if (!userId) {
-      return res.status(401).json({ message: 'Utilisateur non authentifié.' });
-    }
-
-    // Récupération des données
     const { patientData, recipientDoctorId } = req.body;
     const files = req.files || [];
 
@@ -68,61 +70,23 @@ const sendConsultation = async (req, res) => {
       return res.status(400).json({ message: 'Le destinataire doit être un médecin.' });
     }
 
-    // Traitement des fichiers
-    const fileUrls = [];
-    for (const file of files) {
-      try {
-        const uploadStream = gfs.openUploadStream(file.originalname, {
-          metadata: {
-            originalName: file.originalname,
-            uploadedBy: userId,
-            uploadedAt: new Date()
-          }
-        });
+    // Enregistrer les fichiers dans GridFS
+    const fileUrls = await Promise.all(files.map(async (file) => {
+      const uploadStream = gfs.openUploadStream(file.originalname);
+      uploadStream.end(file.buffer);
+      return {
+        name: file.originalname,
+        url: `/api/files/${uploadStream.id}`,
+      };
+    }));
 
-        await new Promise((resolve, reject) => {
-          uploadStream.on('error', reject);
-          uploadStream.on('finish', resolve);
-          uploadStream.end(file.buffer);
-        });
-
-        fileUrls.push({
-          name: file.originalname,
-          url: `/api/files/${uploadStream.id}`,
-          fileId: uploadStream.id
-        });
-      } catch (fileError) {
-        return res.status(500).json({ 
-          message: 'Erreur lors de l\'upload des fichiers.',
-          debug: fileError.message
-        });
-      }
-    }
-
-    // Création et sauvegarde de la consultation
-    const consultationData = {
-      senderDoctorId: userId,
+    // Créer une nouvelle consultation
+    const consultation = new Consultation({
+      senderDoctorId: req.user.user.id,
       recipientDoctorId,
-      patientData: parsedPatientData,
+      patientData: JSON.parse(patientData),
       files: fileUrls,
-      status: 'pending',
-      createdAt: new Date()
-    };
-
-    const consultation = new Consultation(consultationData);
-    
-    // Validation
-    const validationError = consultation.validateSync();
-    if (validationError) {
-      return res.status(400).json({ 
-        message: 'Données de consultation invalides.',
-        debug: validationError.message,
-        errors: Object.keys(validationError.errors).map(key => ({
-          field: key,
-          message: validationError.errors[key].message
-        }))
-      });
-    }
+    });
 
     await consultation.save();
 
@@ -191,4 +155,4 @@ const getMessages = async (req, res) => {
   }
 };
 
-module.exports = { sendConsultation, getConsultations, getMessages };
+module.exports = { getPatients, sendConsultation, getConsultations, getMessages };

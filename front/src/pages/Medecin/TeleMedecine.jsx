@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
+import { FaUser } from 'react-icons/fa';
+import { jsPDF } from 'jspdf';
 
 const socket = io('http://localhost:5000', {
   withCredentials: true,
@@ -10,20 +12,18 @@ const socket = io('http://localhost:5000', {
 });
 
 function TeleMedecine() {
-  const [patientData, setPatientData] = useState({
-    name: '',
-    age: '',
-    symptoms: '',
-    notes: '',
-  });
-  const [files, setFiles] = useState([]);
+  const [patientData, setPatientData] = useState(null);
+  const [selectedPatientId, setSelectedPatientId] = useState('');
+  const [patientsList, setPatientsList] = useState([]);
+  const [patientSearch, setPatientSearch] = useState('');
+  const [selectedFiles, setSelectedFiles] = useState([]);
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const [doctorsList, setDoctorsList] = useState([]);
   const [receivedConsultations, setReceivedConsultations] = useState([]);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [selectedConsultationId, setSelectedConsultationId] = useState(null);
-  const [loading, setLoading] = useState({ doctors: true, consultations: true, messages: false });
+  const [loading, setLoading] = useState({ doctors: true, patients: true, consultations: true, messages: false });
   const [error, setError] = useState(null);
   const [userId, setUserId] = useState(null);
 
@@ -33,175 +33,191 @@ function TeleMedecine() {
         const response = await axios.get('http://localhost:5000/api/auth/me', { withCredentials: true });
         setUserId(response.data.id);
       } catch (err) {
+        console.error('Fetch user error:', err.response?.status, err.response?.data);
         setError('Erreur lors de la récupération de l’utilisateur.');
-        console.error('Erreur:', err);
       }
     };
 
     const fetchDoctors = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/medecins', { withCredentials: true });
-        setDoctorsList(response.data);
+        setDoctorsList(Array.isArray(response.data) ? response.data : []);
         setLoading((prev) => ({ ...prev, doctors: false }));
       } catch (err) {
+        console.error('Fetch doctors error:', err.response?.status, err.response?.data);
         setError('Erreur lors de la récupération des médecins.');
+        setDoctorsList([]);
         setLoading((prev) => ({ ...prev, doctors: false }));
-        console.error('Erreur:', err);
+      }
+    };
+
+    const fetchPatients = async () => {
+      try {
+        setLoading((prev) => ({ ...prev, patients: true }));
+        const response = await axios.get('http://localhost:5000/api/patients', { withCredentials: true });
+        console.log('Patients response:', response.data);
+        setPatientsList(Array.isArray(response.data) ? response.data : []);
+        setLoading((prev) => ({ ...prev, patients: false }));
+      } catch (err) {
+        console.error('Fetch patients error:', err.response?.status, err.response?.data);
+        setError('Erreur lors de la récupération des patients.');
+        setPatientsList([]);
+        setLoading((prev) => ({ ...prev, patients: false }));
       }
     };
 
     const fetchReceivedConsultations = async () => {
       try {
         const response = await axios.get('http://localhost:5000/api/telemedecine/consultations', { withCredentials: true });
-        setReceivedConsultations(response.data);
+        setReceivedConsultations(Array.isArray(response.data) ? response.data : []);
         setLoading((prev) => ({ ...prev, consultations: false }));
       } catch (err) {
+        console.error('Fetch consultations error:', err.response?.status, err.response?.data);
         setError('Erreur lors de la récupération des consultations.');
         setLoading((prev) => ({ ...prev, consultations: false }));
-        console.error('Erreur:', err);
       }
     };
 
     fetchUser();
     fetchDoctors();
+    fetchPatients();
     fetchReceivedConsultations();
 
+    socket.on('connect', () => {
+      console.log('Socket.IO connected.');
+    });
     socket.on('newMessage', (message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
     });
-
     socket.on('connect_error', (err) => {
-      console.error('Erreur de connexion Socket.IO:', err.message);
-      setError('Erreur de connexion au chat. Veuillez vérifier votre réseau.');
+      console.error('Socket.IO connection error:', err.message);
+      setError('Connexion au chat échouée. Fonctions de chat limitées.');
     });
 
     return () => {
+      socket.off('connect');
       socket.off('newMessage');
       socket.off('connect_error');
     };
   }, []);
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setPatientData({ ...patientData, [name]: value });
+  useEffect(() => {
+    const fetchPatientDetails = async () => {
+      if (selectedPatientId) {
+        try {
+          setLoading((prev) => ({ ...prev, patients: true }));
+          const patientResponse = await axios.get(
+            `http://localhost:5000/api/patients/details?userId=${selectedPatientId}`,
+            { withCredentials: true }
+          );
+          const dossierResponse = await axios.get(
+            `http://localhost:5000/api/dossiers?patientId=${selectedPatientId}`,
+            { withCredentials: true }
+          );
+          console.log('Patient details:', patientResponse.data);
+          console.log('Dossier:', dossierResponse.data);
+          setPatientData({
+            ...patientResponse.data,
+            dossier: dossierResponse.data[0] || null,
+          });
+          setError(null);
+        } catch (err) {
+          console.error('Fetch patient details error:', err.response?.status, err.response?.data);
+          setError('Erreur lors de la récupération des détails du patient.');
+          setPatientData(null);
+        } finally {
+          setLoading((prev) => ({ ...prev, patients: false }));
+        }
+      } else {
+        setPatientData(null);
+        setSelectedFiles([]);
+      }
+    };
+
+    fetchPatientDetails();
+  }, [selectedPatientId]);
+
+  const handlePatientSearch = (e) => {
+    setPatientSearch(e.target.value);
   };
 
-  const handleFileChange = (e) => {
-    const uploadedFiles = Array.from(e.target.files);
-    setFiles([...files, ...uploadedFiles]);
-  };
-
-  const removeFile = (index) => {
-    const updatedFiles = files.filter((_, i) => i !== index);
-    setFiles(updatedFiles);
-  };
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  console.log('=== DÉBUT handleSubmit ===');
-  
-  if (!selectedDoctor) {
-    setError('Veuillez sélectionner un médecin destinataire.');
-    return;
-  }
-
-  console.log('Données à envoyer:');
-  console.log('- patientData:', patientData);
-  console.log('- selectedDoctor:', selectedDoctor);
-  console.log('- files:', files);
-  console.log('- nombre de fichiers:', files.length);
-
-  const formData = new FormData();
-  
-  // Vérification des données avant envoi
-  try {
-    const patientDataString = JSON.stringify(patientData);
-    console.log('patientData JSON:', patientDataString);
-    formData.append('patientData', patientDataString);
-  } catch (jsonError) {
-    console.error('Erreur JSON stringify:', jsonError);
-    setError('Erreur dans le formatage des données patient.');
-    return;
-  }
-
-  formData.append('recipientDoctorId', selectedDoctor);
-  
-  // Ajout des fichiers avec vérification
-  files.forEach((file, index) => {
-    console.log(`Ajout fichier ${index}:`, file.name, file.size, 'bytes');
-    formData.append('files', file);
+  const filteredPatients = patientsList.filter((patient) => {
+    const fullName = (patient.name || '').toLowerCase();
+    return fullName.includes(patientSearch.toLowerCase());
   });
 
-  // Log du contenu FormData (pour debug)
-  console.log('Contenu FormData:');
-  for (let pair of formData.entries()) {
-    if (pair[1] instanceof File) {
-      console.log(`${pair[0]}: [File] ${pair[1].name} (${pair[1].size} bytes)`);
+  console.log('Filtered patients:', filteredPatients);
+
+  const toggleFileSelection = (item, type) => {
+    const identifier = type === 'report' ? item._id : item.instanceId;
+    if (selectedFiles.some((f) => f.identifier === identifier && f.type === type)) {
+      setSelectedFiles(selectedFiles.filter((f) => !(f.identifier === identifier && f.type === type)));
     } else {
-      console.log(`${pair[0]}: ${pair[1]}`);
+      setSelectedFiles([...selectedFiles, { ...item, type, identifier }]);
     }
-  }
+  };
 
-  try {
-    console.log('Envoi de la requête...');
-    
-    const response = await axios.post('http://localhost:5000/api/telemedecine', formData, {
-      withCredentials: true,
-      headers: { 
-        'Content-Type': 'multipart/form-data'
-      },
-      timeout: 30000, // 30 secondes timeout
-    });
+  const generateReportPDF = (report, patient) => {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text('Compte Rendu Médical', 105, 20, { align: 'center' });
+    doc.setLineWidth(0.5);
+    doc.line(20, 25, 190, 25);
 
-    console.log('Réponse reçue:', response.data);
-    
-    // Reset du formulaire
-    setPatientData({ name: '', age: '', symptoms: '', notes: '' });
-    setFiles([]);
-    setSelectedDoctor('');
-    setError(null);
-    
-    alert('Consultation envoyée avec succès !');
-    console.log('=== FIN handleSubmit (SUCCÈS) ===');
+    doc.setFontSize(12);
+    doc.text('Informations du Patient', 20, 35);
+    doc.text(`Nom: ${patient.name || `${patient.prenom} ${patient.nom}`}`, 20, 45);
+    doc.text(`Date de Consultation: ${new Date(report.consultationDate).toLocaleDateString('fr-FR')}`, 20, 55);
+    doc.text(`Email: ${patient.email || 'Non spécifié'}`, 20, 65);
+    doc.text(`Téléphone: ${patient.phone || 'Non spécifié'}`, 20, 75);
 
-  } catch (err) {
-    console.error('=== ERREUR handleSubmit ===');
-    console.error('Erreur complète:', err);
-    
-    if (err.response) {
-      // Le serveur a répondu avec un code d'erreur
-      console.error('Status:', err.response.status);
-      console.error('Headers:', err.response.headers);
-      console.error('Data:', err.response.data);
-      
-      const errorMessage = err.response.data?.message || 'Erreur serveur';
-      const debugInfo = err.response.data?.debug || '';
-      
-      setError(`${errorMessage}${debugInfo ? ` (Debug: ${debugInfo})` : ''}`);
-      
-      // Afficher les détails complets en console pour le développeur
-      if (err.response.data?.stack) {
-        console.error('Stack trace serveur:', err.response.data.stack);
-      }
-      
-      if (err.response.data?.errors) {
-        console.error('Erreurs détaillées:', err.response.data.errors);
-      }
-      
-    } else if (err.request) {
-      // Pas de réponse du serveur
-      console.error('Pas de réponse du serveur');
-      console.error('Request:', err.request);
-      setError('Pas de réponse du serveur. Vérifiez votre connexion.');
-      
-    } else {
-      // Erreur dans la configuration de la requête
-      console.error('Erreur configuration requête:', err.message);
-      setError(`Erreur requête: ${err.message}`);
+    doc.text('Observations', 20, 95);
+    doc.text(report.findings || 'Aucune observation spécifiée', 20, 105, { maxWidth: 170 });
+
+    doc.text('Diagnostic', 20, 125);
+    doc.text(report.diagnosis || 'Non spécifié', 20, 135, { maxWidth: 170 });
+
+    doc.text('Recommandations', 20, 155);
+    doc.text(report.recommendations || 'Aucune recommandation spécifiée', 20, 165, { maxWidth: 170 });
+
+    doc.text('Notes', 20, 185);
+    doc.text(report.notes || 'Aucune note spécifiée', 20, 195, { maxWidth: 170 });
+
+    doc.setFontSize(10);
+    doc.text(`Signature du Médecin: ________________________`, 140, 270);
+    doc.text(`Date: ${new Date().toLocaleDateString('fr-FR')}`, 140, 280);
+
+    return doc.output('blob');
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedDoctor) {
+      setError('Veuillez sélectionner un médecin destinataire.');
+      return;
     }
-    
-    console.error('=== FIN ERREUR ===');
-  }
-};
+
+    const formData = new FormData();
+    formData.append('patientData', JSON.stringify(patientData));
+    formData.append('recipientDoctorId', selectedDoctor);
+    files.forEach((file) => formData.append('files', file));
+
+    try {
+      await axios.post('http://localhost:5000/api/telemedecine', formData, {
+        withCredentials: true,
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      setPatientData({ name: '', age: '', symptoms: '', notes: '' });
+      setFiles([]);
+      setSelectedDoctor('');
+      setError(null);
+      // Afficher une notification de succès (à remplacer par react-toastify)
+      alert('Consultation envoyée avec succès !');
+    } catch (err) {
+      setError('Erreur lors de l’envoi des données.');
+      console.error('Erreur:', err);
+    }
+  };
 
   const handleSendMessage = () => {
     if (newMessage.trim() && selectedConsultationId && userId) {
@@ -214,28 +230,19 @@ const handleSubmit = async (e) => {
     }
   };
 
-  const selectConsultation = async (consultationId) => {
-    setSelectedConsultationId(consultationId);
-    socket.emit('joinConsultation', consultationId);
-    setLoading((prev) => ({ ...prev, messages: true }));
-    try {
-      const response = await axios.get(`http://localhost:5000/api/telemedecine/messages/${consultationId}`, {
-        withCredentials: true,
-      });
-      setMessages(response.data);
-      setLoading((prev) => ({ ...prev, messages: false }));
-      setError(null);
-    } catch (err) {
-      setError('Erreur lors du chargement des messages.');
-      setLoading((prev) => ({ ...prev, messages: false }));
-      console.error('Erreur:', err);
-    }
-  };
+  if (error && !patientsList.length && !doctorsList.length && !receivedConsultations.length) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-red-600 text-lg p-4 bg-red-100 rounded-lg">
+          {error} Veuillez vérifier la connexion au serveur ou réessayer.
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-green-50 to-yellow-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto bg-white shadow-2xl rounded-3xl overflow-hidden">
-        {/* En-tête */}
         <div className="bg-gradient-to-r from-blue-600 to-green-600 text-white py-8 px-10 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <svg className="h-10 w-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,11 +253,9 @@ const handleSubmit = async (e) => {
           <p className="text-sm font-medium">Collaborer en temps réel avec vos collègues médecins</p>
         </div>
 
-        {/* Corps */}
         <div className="p-10 grid grid-cols-1 lg:grid-cols-2 gap-10">
-          {/* Section envoi de consultation */}
-          <div className="bg-blue-50 rounded-2xl p-8 shadow-md">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Envoyer une demande de consultation</h2>
+          <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Envoyer une demande de consultation</h2>
             {error && (
               <div className="mb-4 p-4 bg-red-100 text-red-800 rounded-lg flex items-center">
                 <svg className="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
@@ -268,12 +273,14 @@ const handleSubmit = async (e) => {
                   <div className="mt-1 flex justify-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-blue-600"></div>
                   </div>
+                ) : doctorsList.length === 0 ? (
+                  <p className="mt-1 text-sm text-gray-500">Aucun médecin trouvé.</p>
                 ) : (
                   <select
                     id="doctor"
                     value={selectedDoctor}
                     onChange={(e) => setSelectedDoctor(e.target.value)}
-                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 transition duration-200"
+                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition duration-200"
                     required
                   >
                     <option value="">Sélectionnez un médecin</option>
@@ -285,121 +292,156 @@ const handleSubmit = async (e) => {
                   </select>
                 )}
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                    Nom du patient
-                  </label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    value={patientData.name}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 transition duration-200"
-                    placeholder="Entrez le nom du patient"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="age" className="block text-sm font-medium text-gray-700">
-                    Âge du patient
-                  </label>
-                  <input
-                    type="number"
-                    id="age"
-                    name="age"
-                    value={patientData.age}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 transition duration-200"
-                    placeholder="Entrez l'âge"
-                    required
-                  />
-                </div>
-              </div>
               <div>
-                <label htmlFor="symptoms" className="block text-sm font-medium text-gray-700">
-                  Symptômes
+                <label htmlFor="patientSearch" className="block text-sm font-medium text-gray-700">
+                  Rechercher ou sélectionner un patient
                 </label>
-                <textarea
-                  id="symptoms"
-                  name="symptoms"
-                  value={patientData.symptoms}
-                  onChange={handleInputChange}
-                  rows="4"
-                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 transition duration-200"
-                  placeholder="Décrivez les symptômes du patient"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-                  Notes supplémentaires
-                </label>
-                <textarea
-                  id="notes"
-                  name="notes"
-                  value={patientData.notes}
-                  onChange={handleInputChange}
-                  rows="4"
-                  className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 transition duration-200"
-                  placeholder="Ajoutez des notes (facultatif)"
-                />
-              </div>
-              <div>
-                <label htmlFor="files" className="block text-sm font-medium text-gray-700">
-                  Joindre des fichiers
-                </label>
-                <div className="mt-1 flex items-center justify-center px-6 pt-5 pb-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-green-500 transition duration-200">
-                  <div className="space-y-2 text-center">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <div className="flex text-sm text-gray-600">
-                      <label htmlFor="files" className="relative cursor-pointer bg-white rounded-md font-medium text-green-600 hover:text-green-700">
-                        <span>Choisir des fichiers</span>
-                        <input
-                          id="files"
-                          name="files"
-                          type="file"
-                          multiple
-                          accept="image/*,application/pdf"
-                          onChange={handleFileChange}
-                          className="sr-only"
-                        />
-                      </label>
-                      <p className="pl-2">ou glisser-déposer</p>
-                    </div>
-                    <p className="text-xs text-gray-500">Images ou PDF, jusqu'à 10MB</p>
+                {loading.patients ? (
+                  <div className="mt-1 flex justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-blue-600"></div>
                   </div>
-                </div>
+                ) : patientsList.length === 0 ? (
+                  <p className="mt-1 text-sm text-gray-500">Aucun patient trouvé.</p>
+                ) : (
+                  <>
+                    <input
+                      type="text"
+                      id="patientSearch"
+                      value={patientSearch}
+                      onChange={handlePatientSearch}
+                      className="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition duration-200"
+                      placeholder="Rechercher un patient..."
+                    />
+                    <select
+                      id="patient"
+                      value={selectedPatientId}
+                      onChange={(e) => setSelectedPatientId(e.target.value)}
+                      className="mt-2 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 transition duration-200"
+                      required
+                    >
+                      <option value="">Sélectionnez un patient</option>
+                      {filteredPatients.map((patient) => (
+                        <option key={patient.id} value={patient.id}>
+                          {patient.name}
+                        </option>
+                      ))}
+                    </select>
+                    {filteredPatients.length === 0 && patientSearch && (
+                      <p className="mt-1 text-sm text-gray-500">Aucun patient correspond à la recherche.</p>
+                    )}
+                  </>
+                )}
               </div>
-              {files.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium text-gray-700">Fichiers sélectionnés :</h3>
-                  <ul className="mt-2 border border-gray-200 rounded-lg divide-y divide-gray-200">
-                    {files.map((file, index) => (
-                      <li key={index} className="pl-4 pr-5 py-3 flex items-center justify-between text-sm hover:bg-yellow-50 transition duration-200">
-                        <div className="w-0 flex-1 flex items-center">
-                          <svg className="flex-shrink-0 h-5 w-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clipRule="evenodd" />
-                          </svg>
-                          <span className="ml-2 flex-1 w-0 truncate">{file.name}</span>
-                        </div>
-                        <div className="ml-4 flex-shrink-0">
-                          <button type="button" onClick={() => removeFile(index)} className="font-medium text-red-600 hover:text-red-700">
-                            Supprimer
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+              {patientData && (
+                <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+                  <h3 className="text-xl font-semibold text-gray-900 mb-6">Détails du patient</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-3">
+                      <FaUser className="text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Nom</p>
+                        <p className="text-gray-900 font-medium">{patientData.name || `${patientData.prenom || ''} ${patientData.nom || ''}`.trim()}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <FaUser className="text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Âge</p>
+                        <p className="text-gray-900 font-medium">
+                          {patientData.dateNaissance
+                            ? Math.floor((new Date() - new Date(patientData.dateNaissance)) / (365.25 * 24 * 60 * 60 * 1000))
+                            : patientData.age || 'Non spécifié'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <FaUser className="text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Sexe</p>
+                        <p className="text-gray-900 font-medium">{patientData.sexe || 'Non spécifié'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <FaUser className="text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Allergies</p>
+                        <p className="text-gray-900 font-medium">
+                          {patientData.allergies?.length > 0 ? patientData.allergies.join(', ') : 'Aucune'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <FaUser className="text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Antécédents médicaux</p>
+                        <p className="text-gray-900 font-medium">{patientData.antecedent || 'Aucun'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <FaUser className="text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-500">Groupe sanguin</p>
+                        <p className="text-gray-900 font-medium">{patientData.groupeSanguin || 'Non spécifié'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  {patientData.dossier ? (
+                    <>
+                      <h4 className="text-sm font-medium text-gray-700 mt-6">Images DICOM</h4>
+                      <ul className="mt-2 border border-gray-200 rounded-lg divide-y divide-gray-200">
+                        {patientData.dossier.dicomImages?.length > 0 ? (
+                          patientData.dossier.dicomImages.map((dicom) => (
+                            <li
+                              key={dicom.instanceId || dicom._id}
+                              className="pl-4 pr-5 py-3 flex items-center justify-between text-sm hover:bg-blue-50 transition duration-200"
+                            >
+                              <div className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedFiles.some((f) => f.identifier === (dicom.instanceId || dicom._id) && f.type === 'dicom')}
+                                  onChange={() => toggleFileSelection(dicom, 'dicom')}
+                                  className="mr-2"
+                                />
+                                <span>{dicom.patientName || 'Image DICOM'} ({new Date(dicom.examDate).toLocaleDateString('fr-FR')})</span>
+                              </div>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="pl-4 pr-5 py-3 text-sm text-gray-500">Aucune image DICOM</li>
+                        )}
+                      </ul>
+                      <h4 className="text-sm font-medium text-gray-700 mt-6">Rapports médicaux</h4>
+                      <ul className="mt-2 border border-gray-200 rounded-lg divide-y divide-gray-200">
+                        {patientData.dossier.reports?.length > 0 ? (
+                          patientData.dossier.reports.map((report) => (
+                            <li
+                              key={report._id}
+                              className="pl-4 pr-5 py-3 flex items-center justify-between text-sm hover:bg-blue-50 transition duration-200">
+                              <div className="flex items-center">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedFiles.some((f) => f.identifier === report._id && f.type === 'report')}
+                                  onChange={() => toggleFileSelection(report, 'report')}
+                                  className="mr-2"
+                                />
+                                <span>Rapport du {new Date(report.consultationDate).toLocaleDateString('fr-FR')}</span>
+                              </div>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="pl-4 pr-5 py-3 text-sm text-gray-500">Aucun rapport médical</li>
+                        )}
+                      </ul>
+                    </>
+                  ) : (
+                    <p className="text-sm text-gray-500 mt-4">Aucun dossier médical trouvé.</p>
+                  )}
                 </div>
               )}
-              <div className="flex justify-end">
+              <div className="flex justify-end mt-6">
                 <button
                   type="submit"
-                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition duration-200"
+                  className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-lg shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-200"
                 >
                   Envoyer pour consultation
                 </button>
@@ -407,39 +449,44 @@ const handleSubmit = async (e) => {
             </form>
           </div>
 
-          {/* Section consultations reçues et chat */}
-          <div className="bg-green-50 rounded-2xl p-8 shadow-md">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Consultations reçues</h2>
+          <div className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Consultations reçues</h2>
             {loading.consultations ? (
               <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-green-600"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-600"></div>
               </div>
             ) : receivedConsultations.length === 0 ? (
-              <p className="text-gray-500 text-center">Aucune consultation reçue pour le moment.</p>
+              <p className="text-gray-500 text-center">Aucune consultation reçue.</p>
             ) : (
               <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                {receivedConsultations.map((consultation, index) => (
+                {receivedConsultations.map((consultation) => (
                   <div
-                    key={index}
+                    key={consultation._id}
                     onClick={() => selectConsultation(consultation._id)}
-                    className={`border border-gray-200 rounded-lg p-6 cursor-pointer transition duration-200 ${
-                      selectedConsultationId === consultation._id ? 'bg-yellow-100 border-yellow-500' : 'hover:bg-yellow-50'
-                    }`}
+                    className={`border border-gray-200 rounded-lg p-6 cursor-pointer transition duration-200 ${selectedConsultationId === consultation._id ? 'bg-blue-100 border-blue-500' : 'hover:bg-blue-50'
+                      }`}
                   >
                     <div className="flex justify-between items-center mb-2">
                       <p className="text-sm font-medium text-gray-700">
-                        <strong>Patient :</strong> {consultation.patientData.name}, {consultation.patientData.age} ans
+                        <strong>Patient :</strong> {consultation.patientData?.name || 'Patient inconnu'}, {consultation.patientData?.age || 'Âge inconnu'} ans
                       </p>
-                      <span className="text-xs text-blue-600">{new Date(consultation.createdAt).toLocaleDateString()}</span>
+                      <span className="text-xs text-blue-600">{new Date(consultation.createdAt).toLocaleDateString('fr-FR')}</span>
                     </div>
-                    <p className="text-sm"><strong>Symptômes :</strong> {consultation.patientData.symptoms}</p>
-                    <p className="text-sm"><strong>Notes :</strong> {consultation.patientData.notes || 'Aucune'}</p>
+                    <p className="text-sm"><strong>Allergies :</strong> {consultation.patientData?.allergies?.join(', ') || 'Aucune'}</p>
+                    <p className="text-sm"><strong>Antécédents :</strong> {consultation.patientData?.antecedent || 'Aucun'}</p>
                     <p className="text-sm font-medium text-gray-700 mt-2">Fichiers :</p>
                     <ul className="list-disc pl-5 text-sm">
-                      {consultation.files.map((file, fileIndex) => (
-                        <li key={fileIndex}>
+                      {(consultation.reports || []).map((file, index) => (
+                        <li key={`report_${index}`}>
                           <a href={file.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                            {file.name}
+                            {file.name || `Rapport ${index + 1}`}
+                          </a>
+                        </li>
+                      ))}
+                      {(consultation.dicomUrls || []).map((url, index) => (
+                        <li key={`dicom_${index}`}>
+                          <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                            Image DICOM {index + 1}
                           </a>
                         </li>
                       ))}
@@ -450,7 +497,7 @@ const handleSubmit = async (e) => {
             )}
 
             <div className="mt-8">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-6">Discussion</h2>
+              <h2 className="text-xl font-semibold text-gray-900 mb-6">Discussion</h2>
               <div className="border border-gray-200 rounded-lg p-6 h-80 overflow-y-auto mb-4 bg-white">
                 {loading.messages ? (
                   <div className="flex justify-center items-center h-full">
@@ -461,7 +508,7 @@ const handleSubmit = async (e) => {
                 ) : (
                   messages.map((msg, index) => (
                     <div key={index} className={`mb-4 ${msg.senderId === userId ? 'text-right' : 'text-left'}`}>
-                      <p className={`inline-block p-3 rounded-lg max-w-xs ${msg.senderId === userId ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-gray-800'}`}>
+                      <p className={`inline-block p-3 rounded-lg max-w-xs ${msg.senderId === userId ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>
                         <strong>{msg.senderId === userId ? 'Moi' : 'Autre'} :</strong> {msg.message}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">{new Date(msg.timestamp).toLocaleString()}</p>
