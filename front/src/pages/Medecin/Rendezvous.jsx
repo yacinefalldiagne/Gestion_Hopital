@@ -42,27 +42,29 @@ function Rendezvous() {
     const fetchRendezvous = async () => {
       try {
         setLoading(true);
+        console.log('Fetching rendez-vous pour medecinId:', medecinId);
         const response = await axios.get(`http://localhost:5000/api/rendezvous/medecin/${medecinId}`, {
           withCredentials: true,
         });
+        console.log('Rendez-vous reçus:', response.data);
         setRendezvous(response.data);
         setError(null);
       } catch (err) {
-        console.error('Erreur lors de fetchRendezvous:', err);
-        setError('Erreur lors de la récupération des rendez-vous');
+        console.error('Erreur lors de fetchRendezvous:', err.response?.data || err);
+        setError(err.response?.data?.message || 'Erreur lors de la récupération des rendez-vous');
       } finally {
         setLoading(false);
       }
     };
 
-    if (authLoading) return;
-    if (!user || user.role !== 'medecin') {
+    if (authLoading || !medecinId) {
+      console.warn('Auth en cours ou medecinId manquant:', { authLoading, medecinId });
       setLoading(false);
       setError('Vous devez être connecté en tant que médecin');
       return;
     }
     fetchRendezvous();
-  }, [user, authLoading]);
+  }, [user, authLoading, medecinId]);
 
   // Navigation handlers
   const handlePrevMonth = () => {
@@ -100,6 +102,7 @@ function Rendezvous() {
     if (!selectedRdv || !newStatus || newStatus === selectedRdv.statut) return;
 
     try {
+      console.log('Mise à jour du statut pour rendez-vous:', selectedRdv.id, 'Nouveau statut:', newStatus);
       const response = await axios.put(
         `http://localhost:5000/api/rendezvous/${selectedRdv.id}`,
         { statut: newStatus },
@@ -110,9 +113,10 @@ function Rendezvous() {
       );
       setSelectedRdv((prev) => ({ ...prev, statut: newStatus }));
       setStatusError(null);
+      console.log('Statut mis à jour:', response.data);
     } catch (err) {
-      console.error('Erreur lors de handleStatusChange:', err);
-      setStatusError('Erreur lors de la mise à jour du statut');
+      console.error('Erreur lors de handleStatusChange:', err.response?.data || err);
+      setStatusError(err.response?.data?.message || 'Erreur lors de la mise à jour du statut');
     }
   };
 

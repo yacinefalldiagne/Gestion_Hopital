@@ -84,18 +84,18 @@ function MedecinDashboard() {
 
   // Chart data
   const evaluationData = {
-    labels: dashboardData.chartData.labels,
+    labels: dashboardData.chartData?.labels || [],
     datasets: [
       {
         label: "Nombre de consultations",
-        data: dashboardData.chartData.consultations,
+        data: dashboardData.chartData?.consultations || [],
         borderColor: "rgba(54, 162, 235, 1)",
         backgroundColor: "rgba(54, 162, 235, 0.2)",
         fill: true,
       },
       {
         label: "Diagnostics effectués",
-        data: dashboardData.chartData.diagnostics,
+        data: dashboardData.chartData?.diagnostics || [],
         borderColor: "rgba(255, 99, 132, 1)",
         backgroundColor: "rgba(255, 99, 132, 0.2)",
         fill: true,
@@ -125,13 +125,13 @@ function MedecinDashboard() {
             {day}
           </div>
         ))}
-        {Array(dashboardData.calendar.firstDayOfMonth)
+        {Array(dashboardData.calendar?.firstDayOfMonth || 0)
           .fill(null)
           .map((_, index) => (
             <div key={`empty-${index}`} className="h-16"></div>
           ))}
-        {Array.from({ length: dashboardData.calendar.daysInMonth }, (_, i) => i + 1).map((day) => {
-          const appointments = dashboardData.calendar.appointments[day] || [];
+        {Array.from({ length: dashboardData.calendar?.daysInMonth || 0 }, (_, i) => i + 1).map((day) => {
+          const appointments = dashboardData.calendar?.appointments?.[day] || [];
           return (
             <div
               key={day}
@@ -185,22 +185,22 @@ function MedecinDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="flex flex-col items-center p-6 bg-blue-100 rounded-lg shadow-sm">
           <FaCalendarAlt className="text-3xl text-blue-600 mb-2" />
-          <h2 className="text-3xl font-bold text-gray-900">{dashboardData.statistics.todayAppointments}</h2>
+          <h2 className="text-3xl font-bold text-gray-900">{dashboardData.statistics?.todayAppointments || 0}</h2>
           <p className="text-gray-600">Rendez-vous aujourd'hui</p>
         </div>
         <div className="flex flex-col items-center p-6 bg-pink-100 rounded-lg shadow-sm">
           <FaUser className="text-3xl text-pink-600 mb-2" />
-          <h2 className="text-3xl font-bold text-gray-900">{dashboardData.statistics.patientsFollowed}</h2>
+          <h2 className="text-3xl font-bold text-gray-900">{dashboardData.statistics?.patientsFollowed || 0}</h2>
           <p className="text-gray-600">Patients suivis</p>
         </div>
         <div className="flex flex-col items-center p-6 bg-green-100 rounded-lg shadow-sm">
           <FaFileMedical className="text-3xl text-green-600 mb-2" />
-          <h2 className="text-3xl font-bold text-gray-900">{dashboardData.statistics.pendingReports}</h2>
+          <h2 className="text-3xl font-bold text-gray-900">{dashboardData.statistics?.pendingReports || 0}</h2>
           <p className="text-gray-600">Rapports en attente</p>
         </div>
         <div className="flex flex-col items-center p-6 bg-yellow-100 rounded-lg shadow-sm">
           <FaChartLine className="text-3xl text-yellow-600 mb-2" />
-          <h2 className="text-3xl font-bold text-gray-900">{dashboardData.statistics.completedConsultations}</h2>
+          <h2 className="text-3xl font-bold text-gray-900">{dashboardData.statistics?.completedConsultations || 0}</h2>
           <p className="text-gray-600">Consultations terminées</p>
         </div>
       </div>
@@ -214,7 +214,7 @@ function MedecinDashboard() {
               <button onClick={() => handleMonthChange(-1)} className="text-gray-600 hover:text-gray-800">
                 <FaChevronLeft />
               </button>
-              <span className="text-lg font-semibold text-gray-800">{dashboardData.calendar.month}</span>
+              <span className="text-lg font-semibold text-gray-800">{dashboardData.calendar?.month || ""}</span>
               <button onClick={() => handleMonthChange(1)} className="text-gray-600 hover:text-gray-800">
                 <FaChevronRight />
               </button>
@@ -251,7 +251,7 @@ function MedecinDashboard() {
             </div>
           </div>
           <div className="space-y-4">
-            {dashboardData.appointments.length > 0 ? (
+            {dashboardData.appointments && dashboardData.appointments.length > 0 ? (
               dashboardData.appointments.map((appointment) => (
                 <div
                   key={appointment.id}

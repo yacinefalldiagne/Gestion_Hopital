@@ -95,35 +95,113 @@ function TeleMedecine() {
     const updatedFiles = files.filter((_, i) => i !== index);
     setFiles(updatedFiles);
   };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  console.log('=== DÉBUT handleSubmit ===');
+  
+  if (!selectedDoctor) {
+    setError('Veuillez sélectionner un médecin destinataire.');
+    return;
+  }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedDoctor) {
-      setError('Veuillez sélectionner un médecin destinataire.');
-      return;
+  console.log('Données à envoyer:');
+  console.log('- patientData:', patientData);
+  console.log('- selectedDoctor:', selectedDoctor);
+  console.log('- files:', files);
+  console.log('- nombre de fichiers:', files.length);
+
+  const formData = new FormData();
+  
+  // Vérification des données avant envoi
+  try {
+    const patientDataString = JSON.stringify(patientData);
+    console.log('patientData JSON:', patientDataString);
+    formData.append('patientData', patientDataString);
+  } catch (jsonError) {
+    console.error('Erreur JSON stringify:', jsonError);
+    setError('Erreur dans le formatage des données patient.');
+    return;
+  }
+
+  formData.append('recipientDoctorId', selectedDoctor);
+  
+  // Ajout des fichiers avec vérification
+  files.forEach((file, index) => {
+    console.log(`Ajout fichier ${index}:`, file.name, file.size, 'bytes');
+    formData.append('files', file);
+  });
+
+  // Log du contenu FormData (pour debug)
+  console.log('Contenu FormData:');
+  for (let pair of formData.entries()) {
+    if (pair[1] instanceof File) {
+      console.log(`${pair[0]}: [File] ${pair[1].name} (${pair[1].size} bytes)`);
+    } else {
+      console.log(`${pair[0]}: ${pair[1]}`);
     }
+  }
 
-    const formData = new FormData();
-    formData.append('patientData', JSON.stringify(patientData));
-    formData.append('recipientDoctorId', selectedDoctor);
-    files.forEach((file) => formData.append('files', file));
+  try {
+    console.log('Envoi de la requête...');
+    
+    const response = await axios.post('http://localhost:5000/api/telemedecine', formData, {
+      withCredentials: true,
+      headers: { 
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 30000, // 30 secondes timeout
+    });
 
-    try {
-      await axios.post('http://localhost:5000/api/telemedecine', formData, {
-        withCredentials: true,
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      setPatientData({ name: '', age: '', symptoms: '', notes: '' });
-      setFiles([]);
-      setSelectedDoctor('');
-      setError(null);
-      // Afficher une notification de succès (à remplacer par react-toastify)
-      alert('Consultation envoyée avec succès !');
-    } catch (err) {
-      setError('Erreur lors de l’envoi des données.');
-      console.error('Erreur:', err);
+    console.log('Réponse reçue:', response.data);
+    
+    // Reset du formulaire
+    setPatientData({ name: '', age: '', symptoms: '', notes: '' });
+    setFiles([]);
+    setSelectedDoctor('');
+    setError(null);
+    
+    alert('Consultation envoyée avec succès !');
+    console.log('=== FIN handleSubmit (SUCCÈS) ===');
+
+  } catch (err) {
+    console.error('=== ERREUR handleSubmit ===');
+    console.error('Erreur complète:', err);
+    
+    if (err.response) {
+      // Le serveur a répondu avec un code d'erreur
+      console.error('Status:', err.response.status);
+      console.error('Headers:', err.response.headers);
+      console.error('Data:', err.response.data);
+      
+      const errorMessage = err.response.data?.message || 'Erreur serveur';
+      const debugInfo = err.response.data?.debug || '';
+      
+      setError(`${errorMessage}${debugInfo ? ` (Debug: ${debugInfo})` : ''}`);
+      
+      // Afficher les détails complets en console pour le développeur
+      if (err.response.data?.stack) {
+        console.error('Stack trace serveur:', err.response.data.stack);
+      }
+      
+      if (err.response.data?.errors) {
+        console.error('Erreurs détaillées:', err.response.data.errors);
+      }
+      
+    } else if (err.request) {
+      // Pas de réponse du serveur
+      console.error('Pas de réponse du serveur');
+      console.error('Request:', err.request);
+      setError('Pas de réponse du serveur. Vérifiez votre connexion.');
+      
+    } else {
+      // Erreur dans la configuration de la requête
+      console.error('Erreur configuration requête:', err.message);
+      setError(`Erreur requête: ${err.message}`);
     }
-  };
+    
+    console.error('=== FIN ERREUR ===');
+  }
+};
 
   const handleSendMessage = () => {
     if (newMessage.trim() && selectedConsultationId && userId) {

@@ -14,16 +14,19 @@ function Patients() {
         const fetchDossiers = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get("http://localhost:5000/api/dossiers", {
-                    withCredentials: true,
-                });
-                setDossiers(response.data);
                 setError("");
+                const response = await axios.get("http://localhost:5000/api/dossiers", {
+                    withCredentials: true, // Inclure les cookies pour l'authentification
+                });
+                if (!Array.isArray(response.data)) {
+                    throw new Error("Les données reçues ne sont pas valides");
+                }
+                setDossiers(response.data);
             } catch (err) {
                 console.error("Erreur lors de la récupération des dossiers:", err);
                 setError(
                     err.response?.data?.message ||
-                    "Erreur lors de la récupération des dossiers. Veuillez réessayer."
+                    "Erreur lors de la récupération des dossiers. Veuillez vérifier votre connexion ou réessayer plus tard."
                 );
             } finally {
                 setLoading(false);

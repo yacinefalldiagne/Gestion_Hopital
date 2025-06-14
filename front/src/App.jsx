@@ -37,13 +37,16 @@ import MedicalReports from "./pages/Medecin/MedicalReport";
 import DicomImages from "./pages/Medecin/DicomImages";
 import TeleMedecine from "./pages/Medecin/TeleMedecine";
 import CompteRendu from "./pages/Medecin/CompteRendu";
+import MedecinNonDicom from "./pages/Medecin/NonDicomImage";
 
 function App() {
   const { theme } = useContext(ThemeContext);
   const location = useLocation();
   const navigate = useNavigate();
   const [isActive, setIsActive] = useState(false);
-  const [userRole, setUserRole] = useState(null);
+  const [userRole, setUserRole] = useState(
+    localStorage.getItem("userRole") || null
+  );
 
   useEffect(() => {
     if (location.pathname === "/") {
@@ -55,6 +58,7 @@ function App() {
       setIsActive(false);
     }
 
+    // Mettre à jour userRole en fonction du chemin
     if (location.pathname.startsWith("/patient")) {
       setUserRole("patient");
     } else if (location.pathname.startsWith("/medecin")) {
@@ -64,6 +68,7 @@ function App() {
     } else {
       setUserRole(null);
     }
+    localStorage.setItem("userRole", userRole); // Synchroniser avec localStorage
   }, [location.pathname, navigate]);
 
   const handleRegisterClick = () => {
@@ -154,6 +159,8 @@ function App() {
             <Route path="patients" element={<PatientsMedecin />} />
             <Route path="dossier-medical/:id" element={<EditPatient />} />
             <Route path="dicom" element={<Dicom />} />
+            <Route path="non-dicom" element={<MedecinNonDicom />} />{" "}
+            {/* Correction ici */}
             <Route path="report" element={<ReportPage />} />
             <Route path="rendezvous" element={<Rendezvous />} />
             <Route
@@ -186,8 +193,8 @@ function App() {
             <Route path="patient/:id" element={<PatientDetails />} />
             <Route path="schedule" element={<AppointmentSecretaire />} />
             <Route path="patient/add" element={<AddPatient />} />
-            <Route path="dossier/:id" element={<Dossier />} />
-            <Route path="dossier" element={<Dossier />} />
+            <Route path="dossier/:id" element={<Dossier />} />{" "}
+            {/* Supprimez le doublon ci-dessous si inutile */}
             <Route path="patients/:id/dossier/add" element={<AddDossier />} />
             <Route path="medecins" element={<Medecins />} />
           </Route>

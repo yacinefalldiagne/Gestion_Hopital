@@ -4,7 +4,6 @@ const Patient = require('../models/patient');
 const Medecin = require('../models/medecin');
 const { v4: uuidv4 } = require('uuid');
 
-
 const createRendezvous = async (req, res) => {
     try {
         const { dateRendezVous, heureDebut, heureFin, titre, description, statut, patient, medecin, color } = req.body;
@@ -418,11 +417,22 @@ const getRendezvousByPatient = async (req, res) => {
 
 const getRendezvousByMedecin = async (req, res) => {
     try {
-        const doctorId = req.user.user.id; // Use authenticated user ID from JWT
-        const medecinExists = await Medecin.findOne({ userId: doctorId });
+        const medecinId = req.params.medecinId;
+        console.log('Recherche de rendez-vous pour medecinId:', medecinId);
+        
+        // Validation de l'ID
+        if (!mongoose.Types.ObjectId.isValid(medecinId)) {
+            return res.status(400).json({ message: 'Format de l\'ID du médecin invalide' });
+        }
+
+        // Chercher le médecin par userId (User._id)
+        const medecinExists = await Medecin.findOne({ userId: medecinId });
         if (!medecinExists) {
+            console.error(`Médecin non trouvé pour userId: ${medecinId}`);
             return res.status(404).json({ message: 'Médecin non trouvé' });
         }
+
+        // Chercher les rendez-vous par l'ID interne du médecin
         const rendezvous = await Rendezvous.find({ medecin: medecinExists._id })
             .populate({
                 path: 'patient',
@@ -455,13 +465,16 @@ const getRendezvousByMedecin = async (req, res) => {
             },
         }));
 
+        console.log(`${transformedRendezvous.length} rendez-vous trouvés pour le médecin`);
         res.status(200).json(transformedRendezvous);
+        
     } catch (error) {
         console.error('Erreur dans getRendezvousByMedecin:', error.message, error.stack);
         res.status(500).json({ message: 'Erreur serveur', error: error.message });
     }
 };
 
+// Export unique de toutes les fonctions
 module.exports = {
     createRendezvous,
     getAllRendezvous,

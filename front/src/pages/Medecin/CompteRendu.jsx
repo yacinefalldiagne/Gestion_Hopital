@@ -1,15 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import { AuthContext } from '../../contexts/AuthContext';
 
 function CompteRendu() {
+  const { user, loading: authLoading } = useContext(AuthContext); // Utiliser AuthContext
   const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchConsultations = async () => {
+      if (authLoading || !user) return; // Attendre que l'auth soit chargée
+
       try {
-        const response = await axios.get('http://localhost:5000/api/reports');
+        setLoading(true);
+        const response = await axios.get(
+          `http://localhost:5000/api/reports/user/${user._id}`,
+          { withCredentials: true }
+        );
         setConsultations(response.data);
         setLoading(false);
       } catch (err) {
@@ -20,7 +28,17 @@ function CompteRendu() {
     };
 
     fetchConsultations();
-  }, []);
+  }, [user, authLoading]);
+
+  if (authLoading) {
+    return <div className="flex justify-center items-center h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600"></div>
+    </div>;
+  }
+
+  if (!user) {
+    return <div className="text-red-600 text-center">Vous devez être connecté.</div>;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-yellow-50 py-16 px-4 sm:px-6 lg:px-8">
@@ -55,24 +73,24 @@ function CompteRendu() {
                 >
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-semibold text-gray-800">
-                      Consultation du {new Date(consultation.createdAt).toLocaleDateString()}
+                      Consultation du {new Date(consultation.consultationDate).toLocaleDateString()}
                     </h2>
                     <span className="text-sm text-blue-600 font-medium">
-                      {consultation.doctor?.name || 'Médecin inconnu'}
+                      {consultation.doctor.name || 'Médecin inconnu'}
                     </span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <p className="text-sm font-medium text-gray-700">Patient :</p>
-                      <p className="text-gray-600">{consultation.patientData?.name || 'N/A'}</p>
+                      <p className="text-gray-600">{consultation.patient.name || 'N/A'}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-gray-700">Diagnostic :</p>
-                      <p className="text-gray-600">{consultation.patientData?.diagnosis || 'Non spécifié'}</p>
+                      <p className="text-gray-600">{consultation.diagnosis || 'Non spécifié'}</p>
                     </div>
                     <div className="col-span-1 md:col-span-2">
                       <p className="text-sm font-medium text-gray-700">Notes :</p>
-                      <p className="text-gray-600">{consultation.patientData?.notes || 'Aucune'}</p>
+                      <p className="text-gray-600">{consultation.notes || 'Aucune'}</p>
                     </div>
                   </div>
                   <div className="mt-4 flex justify-end">
