@@ -103,17 +103,76 @@ const authMiddleware = (req, res, next) => {
 };
 
 // Generate a dossier number
+const formatDateForDossier = (dateNaissance) => {
+  if (!dateNaissance) return "";
+  const date = new Date(dateNaissance);
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  return `${day}${month}${year}`;
+};
+
+// Fonction pour nettoyer et formater les chaînes
+const cleanString = (str) => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Supprime les accents
+    .replace(/[^a-zA-Z]/g, "") // Garde seulement les lettres
+    .toUpperCase();
+};
+
+// Nouvelle fonction pour générer le numéro de dossier
 const generateDossierNumber = async (patientId) => {
-  const patientIdString = patientId.toString();
-  const numeroDossier = `DOS-${Date.now()}-${patientIdString.slice(-4)}`;
-  const existingDossier = await DossierMedical.findOne({
-    numero: numeroDossier,
-  });
-  if (existingDossier) {
-    await new Promise((resolve) => setTimeout(resolve, 1));
-    return generateDossierNumber(patientId);
+  try {
+    // Récupérer les informations du patient avec populate
+    const patient = await Patient.findById(patientId).populate(
+      "userId",
+      "prenom nom dateNaissance lieuNaissance"
+    );
+
+    if (!patient || !patient.userId) {
+      throw new Error("Patient ou informations utilisateur introuvables");
+    }
+
+    const { prenom, nom, dateNaissance, lieuNaissance } = patient.userId;
+
+    // Générer les initiales (première lettre du prénom + première lettre du nom)
+    const initialePrenom = cleanString(prenom).charAt(0) || "X";
+    const initialeNom = cleanString(nom).charAt(0) || "X";
+    const initiales = `${initialePrenom}${initialeNom}`;
+
+    // Formater la date de naissance
+    const dateFormatee = formatDateForDossier(dateNaissance);
+
+    // Nettoyer le lieu de naissance (prendre les 3 premières lettres)
+    const lieuNettoye = cleanString(lieuNaissance).substring(0, 3) || "XXX";
+
+    // Générer un numéro séquentiel pour éviter les doublons
+    const timestamp = Date.now().toString().slice(-6); // 6 derniers chiffres du timestamp
+
+    // Format final: DOSSIER-[Initiales]-[DateNaissance]-[Lieu]-[Timestamp]
+    const numeroDossier = `DOSSIER-${initiales}-${dateFormatee}-${lieuNettoye}-${timestamp}`;
+
+    // Vérifier l'unicité
+    const existingDossier = await DossierMedical.findOne({
+      numero: numeroDossier,
+    });
+
+    if (existingDossier) {
+      // Si le dossier existe déjà, attendre 1ms et réessayer
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      return generateDossierNumber(patientId);
+    }
+
+    return numeroDossier;
+  } catch (error) {
+    console.error("Erreur lors de la génération du numéro de dossier:", error);
+    // Fallback vers l'ancien système en cas d'erreur
+    const patientIdString = patientId.toString();
+    const fallbackNumber = `DOS-${Date.now()}-${patientIdString.slice(-4)}`;
+    return fallbackNumber;
   }
-  return numeroDossier;
 };
 
 // Uploader un fichier DICOM vers Orthanc
@@ -339,12 +398,10 @@ const uploadDicom = async (req, res) => {
     }
 
     if (instanceData.length === 0) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Aucun fichier DICOM valide n'a été uploadé. Vérifiez les fichiers ou le serveur Orthanc.",
-        });
+      return res.status(400).json({
+        message:
+          "Aucun fichier DICOM valide n'a été uploadé. Vérifiez les fichiers ou le serveur Orthanc.",
+      });
     }
 
     console.log(
@@ -407,12 +464,10 @@ const uploadDicom = async (req, res) => {
     });
   } catch (error) {
     console.error("Erreur dans uploadDicom:", error.message, error.stack);
-    res
-      .status(500)
-      .json({
-        message: "Erreur lors de l'upload des fichiers DICOM",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erreur lors de l'upload des fichiers DICOM",
+      error: error.message,
+    });
   }
 };
 
@@ -444,12 +499,10 @@ const getDossiers = async (req, res) => {
     res.json(populatedDossiers);
   } catch (error) {
     console.error("Erreur dans getDossiers:", error.message, error.stack);
-    res
-      .status(500)
-      .json({
-        message: "Erreur lors de la récupération des dossiers",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erreur lors de la récupération des dossiers",
+      error: error.message,
+    });
   }
 };
 
@@ -490,12 +543,10 @@ const getDossiersByPatient = async (req, res) => {
       error.message,
       error.stack
     );
-    res
-      .status(500)
-      .json({
-        message: "Erreur lors de la récupération des dossiers",
-        error: error.message,
-      });
+    res.status(500).json({
+      message: "Erreur lors de la récupération des dossiers",
+      error: error.message,
+    });
   }
 };
 
@@ -509,11 +560,13 @@ const createDossier = async (req, res) => {
       return res.status(400).json({ message: "L'ID du patient est requis" });
     }
 
+    // Trouver le patient par userId
     const patient = await Patient.findOne({ userId: patientId });
     if (!patient) {
       return res.status(404).json({ message: "Patient non trouvé" });
     }
 
+    // Utiliser la nouvelle fonction de génération avec l'ObjectId du patient
     const numero = await generateDossierNumber(patient._id);
 
     let documentPath = "";
@@ -536,24 +589,23 @@ const createDossier = async (req, res) => {
     patient.dossierMedical.push(dossier._id);
     await patient.save();
 
-    res
-      .status(201)
-      .json({
-        message: "Dossier créé avec succès",
-        dossierId: dossier._id,
-        numero,
-      });
+    res.status(201).json({
+      message: "Dossier créé avec succès",
+      dossierId: dossier._id,
+      numero,
+    });
   } catch (error) {
     console.error("Erreur dans createDossier:", error.message, error.stack);
     if (error.code === 11000) {
-      return res
-        .status(400)
-        .json({ message: "Un dossier avec ce numéro existe déjà" });
+      return res.status(400).json({
+        message: "Un dossier avec ce numéro existe déjà",
+      });
     }
     if (error.name === "ValidationError") {
-      return res
-        .status(400)
-        .json({ message: "Données invalides", errors: error.errors });
+      return res.status(400).json({
+        message: "Données invalides",
+        errors: error.errors,
+      });
     }
     res.status(500).json({ message: "Erreur serveur" });
   }
